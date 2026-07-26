@@ -1,0 +1,14 @@
+# Ignore node_modules
+node_modules/
+
+# Ignore environment file (contains sensitive data)
+.env
+
+# Ignore WhatsApp session data
+.wwebjs_auth/
+
+# Ignore credentials
+credentials.json
+
+# Ignore data folder (will be created automatically)
+data/

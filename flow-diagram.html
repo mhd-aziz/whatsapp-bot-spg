@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flow Diagram - SPG/SPB Monitoring System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #58a6ff;
+            margin-bottom: 50px;
+            font-size: 2.5em;
+        }
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 60px;
+        }
+        .flow-section {
+            background: #161b22;
+            border: 2px solid #30363d;
+            border-radius: 12px;
+            padding: 30px;
+        }
+        .flow-section h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #30363d;
+        }
+        .current h2 {
+            color: #f85149;
+        }
+        .solution h2 {
+            color: #3fb950;
+        }
+        .flow-box {
+            background: #0d1117;
+            border: 2px solid #30363d;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .flow-box::after {
+            content: '↓';
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+            color: #58a6ff;
+        }
+        .flow-box:last-child::after {
+            content: '';
+        }
+        .actor {
+            display: inline-block;
+            background: #1f6feb;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+        .problem {
+            background: #da3633;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-top: 10px;
+            font-size: 0.85em;
+            display: inline-block;
+        }
+        .benefit {
+            background: #238636;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-top: 10px;
+            font-size: 0.85em;
+            display: inline-block;
+        }
+        .description {
+            margin-top: 10px;
+            line-height: 1.6;
+            color: #8b949e;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 40px;
+        }
+        .stat-box {
+            background: #161b22;
+            border: 2px solid #30363d;
+            border-radius: 8px;
+            padding: 25px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 3em;
+            font-weight: bold;
+            color: #58a6ff;
+        }
+        .stat-label {
+            margin-top: 10px;
+            color: #8b949e;
+        }
+        .tech-stack {
+            background: #161b22;
+            border: 2px solid #30363d;
+            border-radius: 12px;
+            padding: 30px;
+            margin-top: 40px;
+        }
+        .tech-stack h2 {
+            color: #58a6ff;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .tech-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .tech-item {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+        }
+        .tech-item strong {
+            color: #58a6ff;
+            display: block;
+            margin-bottom: 8px;
+        }
+        @media (max-width: 968px) {
+            .comparison {
+                grid-template-columns: 1fr;
+            }
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 SPG/SPB Monitoring System - Flow Diagram</h1>
+        
+        <div class="comparison">
+            <!-- CURRENT SYSTEM -->
+            <div class="flow-section current">
+                <h2>❌ Sistem Sekarang (Manual)</h2>
+                
+                <div class="flow-box">
+                    <span class="actor">SPG/SPB</span>
+                    <div class="description">
+                        <strong>Pagi:</strong> Foto lokasi saat masuk kerja → Kirim ke WhatsApp supervisor
+                    </div>
+                </div>
+                
+                <div class="flow-box">
+                    <span class="actor">SPG/SPB</span>
+                    <div class="description">
+                        <strong>Siang:</strong> Promosi Grab ke customer, dapat data (nama, HP, kota)
+                    </div>
+                </div>
+                
+                <div class="flow-box">
+                    <span class="actor">SPG/SPB</span>
+                    <div class="description">
+                        <strong>Input Data Customer:</strong> Buka link Google Form → Isi manual → Submit
+                    </div>
+                    <span class="problem">⚠️ Ribet, kadang lupa</span>
+                </div>
+                
+                <div class="flow-box">
+                    <span class="actor">SPG/SPB</span>
+                    <div class="description">
+                        <strong>Sore:</strong> Foto lokasi saat selesai kerja → Kirim ke WhatsApp supervisor
+                    </div>
+                </div>
+                
+                <div class="flow-box">
+                    <span class="actor">Supervisor (Gebetan)</span>
+                    <div class="description">
+                        <strong>Cek Absensi:</strong> Scroll chat WhatsApp satu-satu untuk lihat foto masuk/pulang
+                    </div>
+                    <span class="problem">😫 Capek banget!</span>
+                </div>
+                
+                <div class="flow-box">
+                    <span class="actor">Supervisor (Gebetan)</span>
+                    <div class="description">
+                        <strong>Cek Data Customer:</strong> Buka Google Sheets → Lihat data dari Google Form
+                    </div>
+                    <span class="problem">📊 Tidak terintegrasi dengan absensi</span>
+                </div>
+                
+                <div class="flow-box">
+                    <span class="actor">Supervisor (Gebetan)</span>
+                    <div class="description">
+                        <strong>Laporan Harian:</strong> Manual rekap Excel dari foto + Google Form
+                    </div>
+                    <span class="problem">⏰ Buang waktu 1-2 jam/hari</span>
+                </div>
+            </div>
+            
+            <!-- SOLUTION SYSTEM -->
+            <div class="flow-section solution">
+                <h2>✅ Sistem dengan Bot WhatsApp</h2>
+                
+                <div class="flow-box">
+                    <span class="actor">SPG/SPB</span>
+                    <div class="description">
+                        <strong>Pagi:</strong> Ketik <code>/masuk</code> → Bot minta foto → Kirim foto → ✅ Auto tersimpan
+                    </div>
+                    <span class="benefit">⚡ Cepat & otomatis</span>
+                </div>
+                
+                <div class="flow-box">
+                    <span class="actor">SPG/SPB</span>
+                    <div class="description">
+                        <strong>Siang:</strong> Promosi Grab ke customer, dapat data (nama, HP, kota)
+                    </div>
+                </div>
+                
+                <div class="flow-box">
+                    <span class="actor">SPG/SPB</span>
+                    <div class="description">
+                        <strong>Input Data Customer:</strong> Ketik <code>/customer</code> → Bot tanya nama, HP, kota di chat → ✅ Auto masuk Google Sheets
+                    </div>
+                    <span class="benefit">🚀 Tanpa buka link!</span>
+                </div>
+                
+                <div class="flow-box">
+                    <span class="actor">SPG/SPB</span>
+                    <div class="description">
+                        <strong>Sore:</strong> Ketik <code>/pulang</code> → Bot minta foto → Kirim foto → ✅ Auto tersimpan
+                    </div>
+                    <span class="benefit">⚡ Cepat & otomatis</span>
+                </div>
+                
+                <div class="flow-box">
+                    <span class="actor">Bot (Auto-Process)</span>
+                    <div class="description">
+                        <strong>Background:</strong> Semua data (foto + customer) tersimpan di Google Sheets dengan timestamp & geolocation
+                    </div>
+                    <span class="benefit">🔄 Real-time sync</span>
+                </div>
+                
+                <div class="flow-box">
+                    <span class="actor">Supervisor (Gebetan)</span>
+                    <div class="description">
+                        <strong>Cek Absensi:</strong> Ketik <code>/laporan</code> → Bot kirim summary hari ini (siapa masuk, siapa belum, berapa customer)
+                    </div>
+                    <span class="benefit">😊 Instant report!</span>
+                </div>
+                
+                <div class="flow-box">
+                    <span class="actor">Supervisor (Gebetan)</span>
+                    <div class="description">
+                        <strong>Akses Data:</strong> Buka Google Sheets → Semua data sudah rapi & terintegrasi
+                    </div>
+                    <span class="benefit">📊 Hemat 1-2 jam/hari</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- STATISTICS -->
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-number">90%</div>
+                <div class="stat-label">Pengurangan waktu rekap manual</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">100%</div>
+                <div class="stat-label">Data terintegrasi real-time</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">0</div>
+                <div class="stat-label">Link yang perlu dibuka SPG</div>
+            </div>
+        </div>
+        
+        <!-- TECH STACK -->
+        <div class="tech-stack">
+            <h2>🛠️ Tech Stack untuk PoC</h2>
+            <div class="tech-items">
+                <div class="tech-item">
+                    <strong>WhatsApp Bot</strong>
+                    <span>whatsapp-web.js (Node.js)</span>
+                </div>
+                <div class="tech-item">
+                    <strong>Database</strong>
+                    <span>Google Sheets API</span>
+                </div>
+                <div class="tech-item">
+                    <strong>Storage Foto</strong>
+                    <span>Google Drive API</span>
+                </div>
+                <div class="tech-item">
+                    <strong>Hosting</strong>
+                    <span>Railway / VPS</span>
+                </div>
+                <div class="tech-item">
+                    <strong>Language</strong>
+                    <span>JavaScript (Node.js)</span>
+                </div>
+                <div class="tech-item">
+                    <strong>Estimasi Setup</strong>
+                    <span>2-3 hari kerja</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
