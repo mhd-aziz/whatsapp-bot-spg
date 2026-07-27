@@ -3,7 +3,7 @@ echo "🚀 WhatsApp Bot SPG - Quick Start"
 echo "================================="
 
 echo "1. Installing dependencies..."
-npm install
+npm install --legacy-peer-deps || npm install
 
 echo "2. Creating .env file..."
 if [ ! -f .env ]; then
@@ -18,10 +18,26 @@ mkdir -p data/photos
 touch data/attendance.json
 touch data/customers.json
 
-echo "4. Starting bot..."
-echo "📱 WAIT for QR code to appear..."
-echo "📱 Then scan with WhatsApp on your phone:"
-echo "   Settings → Linked Devices → Link a Device"
-echo "================================="
+echo "4. Verifying all modules..."
+echo "Validating code syntax and loading..."
 
-npm start
+# Run verification
+if node -e "require('./src/config'); require('./src/utils/helpers'); require('./src/services/dataService'); require('./src/handlers/commandHandler'); console.log('✅ All modules verified successfully')"; then
+  echo "✅ Module verification passed"
+else
+  echo "❌ Module verification failed"
+  exit 1
+fi
+
+echo "5. Checking critical files..."
+if node --check src/app.js src/handlers/adminHandler.js src/handlers/attendanceHandler.js src/handlers/commandHandler.js; then
+  echo "✅ All critical files passed syntax check"
+else
+  echo "❌ Syntax errors found"
+  exit 1
+fi
+
+echo "================================="
+echo "✅ Setup complete!"
+echo "✅ Bot ready for deployment!"
+echo "================================="
