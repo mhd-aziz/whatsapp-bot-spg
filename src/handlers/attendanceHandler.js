@@ -117,7 +117,13 @@ class AttendanceHandler {
       try {
         media = await msg.downloadMedia();
       } catch (error) {
-        logger.error('Error downloading media', error);
+        logger.error('Error downloading media: detail ->', {
+          message: error.message,
+          stack: error.stack,
+          msgFrom: phone
+        });
+        await msg.reply('❌ Gagal mengunduh foto. Pastikan koneksi stabil.');
+        return;
       }
 
       // Save photo if available
@@ -125,6 +131,10 @@ class AttendanceHandler {
       if (media && media.data) {
         const photoFilename = `${phone}_${Date.now()}.jpg`;
         savedPhoto = await storageService.savePhoto(media, photoFilename);
+      } else {
+        logger.error('Media downloaded but data missing', { phone });
+        await msg.reply('❌ Foto tidak valid atau rusak.');
+        return;
       }
 
       // Process based on session command

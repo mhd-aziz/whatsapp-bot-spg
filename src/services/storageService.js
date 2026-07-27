@@ -89,6 +89,15 @@ class StorageService {
     return await dataService.getTodayAttendance(phone);
   }
 
+  /**
+   * Get today's attendance for a user (alias for compatibility)
+   * @param {string} phone - User phone number
+   * @returns {Object|null}
+   */
+  async getCheckoutToday(phone) {
+    return await dataService.getTodayAttendance(phone);
+  }
+
   // ==================== CUSTOMER METHODS ====================
 
   /**
