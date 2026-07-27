@@ -43,7 +43,9 @@ class AttendanceHandler {
       try {
         media = await msg.downloadMedia();
       } catch (downloadError) {
-        logger.error('Error downloading media for masuk', downloadError.message || downloadError);
+        const errorMsg = downloadError?.message || downloadError?.toString() || 'Unknown error';
+        const errorStack = downloadError?.stack || '';
+        logger.error('Error downloading media for masuk', `${errorMsg}\n${errorStack}`);
         await msg.reply('❌ Gagal mengunduh foto. Pastikan foto terkirim dengan benar dan coba lagi.');
         return;
       }
@@ -137,7 +139,9 @@ class AttendanceHandler {
       try {
         media = await msg.downloadMedia();
       } catch (downloadError) {
-        logger.error('Error downloading media for masuk', downloadError.message || downloadError);
+        const errorMsg = downloadError?.message || downloadError?.toString() || 'Unknown error';
+        const errorStack = downloadError?.stack || '';
+        logger.error('Error downloading media for masuk', `${errorMsg}\n${errorStack}`);
         await msg.reply('❌ Gagal mengunduh foto. Pastikan foto terkirim dengan benar dan coba lagi.');
         return;
       }
