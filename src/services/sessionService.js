@@ -9,7 +9,9 @@ class SessionService {
     this.sessions = new Map();
     
     // Auto-cleanup expired sessions every 5 minutes
-    setInterval(() => this.cleanupExpiredSessions(), 5 * 60 * 1000);
+    // Use unref() to allow process to exit
+    this.cleanupInterval = setInterval(() => this.cleanupExpiredSessions(), 5 * 60 * 1000);
+    this.cleanupInterval.unref();
   }
 
   /**
