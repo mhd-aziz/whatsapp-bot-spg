@@ -15,9 +15,6 @@ class DataService {
     this.ensureDirectories();
   }
 
-  /**
-   * Ensure data directories exist
-   */
   async ensureDirectories() {
     try {
       await fs.mkdir(this.paths.data, { recursive: true });
@@ -28,34 +25,20 @@ class DataService {
     }
   }
 
-  /**
-   * Read JSON file
-   * @param {string} filePath - Path to JSON file
-   * @returns {Array|Object} Parsed JSON data or empty array/object
-   */
   async readJsonFile(filePath) {
     try {
       const data = await fs.readFile(filePath, 'utf8');
       return JSON.parse(data);
     } catch (error) {
-      if (error.code === 'ENOENT') {
-        // File doesn't exist, return empty array
-        return [];
-      }
+      if (error.code === 'ENOENT') return [];
       logger.error(`Error reading ${filePath}`, error.message);
       return [];
     }
   }
 
-  /**
-   * Write JSON file
-   * @param {string} filePath - Path to JSON file
-   * @param {Array|Object} data - Data to write
-   */
   async writeJsonFile(filePath, data) {
     try {
       await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
-      logger.debug(`Data saved to ${filePath}`);
       return true;
     } catch (error) {
       logger.error(`Error writing ${filePath}`, error.message);
@@ -63,26 +46,10 @@ class DataService {
     }
   }
 
-  // ==================== ATTENDANCE METHODS ====================
-
-  /**
-   * Get all attendance records
-   * @returns {Array} Attendance records
-   */
   async getAttendance() {
     return this.readJsonFile(this.paths.attendance);
   }
 
-  /**
-   * Add attendance record
-   * @param {Object} record - Attendance record
-   * @param {string} record.phone - User phone number
-   * @param {string} record.type - 'masuk' or 'pulang'
-   * @param {string} record.photo - Photo filename
-   * @param {string} record.latitude - GPS latitude
-   * @param {string} record.longitude - GPS longitude
-   * @returns {Object} Created record
-   */
   async addAttendance(record) {
     const attendance = await this.getAttendance();
     
@@ -104,11 +71,6 @@ class DataService {
     return newRecord;
   }
 
-  /**
-   * Get today's attendance for a user
-   * @param {string} phone - User phone number
-   * @returns {Object|null} Today's attendance record or null
-   */
   async getTodayAttendance(phone) {
     const attendance = await this.getAttendance();
     const today = getCurrentDate();
@@ -116,36 +78,28 @@ class DataService {
     return attendance.find(a => a.phone === phone && a.date === today);
   }
 
-  /**
-   * Get attendance by date range
-   * @param {string} startDate - Start date (YYYY-MM-DD)
-   * @param {string} endDate - End date (YYYY-MM-DD)
-   * @returns {Array} Attendance records
-   */
+  async deleteAttendance(phone, date) {
+    const attendance = await this.getAttendance();
+    const initialLength = attendance.length;
+    const newAttendance = attendance.filter(a => !(a.phone === phone && a.date === date));
+    
+    if (initialLength === newAttendance.length) {
+      return false; // Nothing was deleted
+    }
+    
+    await this.writeJsonFile(this.paths.attendance, newAttendance);
+    return true;
+  }
+
   async getAttendanceByDateRange(startDate, endDate) {
     const attendance = await this.getAttendance();
     return attendance.filter(a => a.date >= startDate && a.date <= endDate);
   }
 
-  // ==================== CUSTOMER METHODS ====================
-
-  /**
-   * Get all customer records
-   * @returns {Array} Customer records
-   */
   async getCustomers() {
     return this.readJsonFile(this.paths.customers);
   }
 
-  /**
-   * Add customer record
-   * @param {Object} customer - Customer data
-   * @param {string} customer.nama - Customer name
-   * @param {string} customer.hp - Customer phone
-   * @param {string} customer.kota - Customer city
-   * @param {string} customer.spgPhone - SPG phone number
-   * @returns {Object} Created customer record
-   */
   async addCustomer(customer) {
     const customers = await this.getCustomers();
     
@@ -166,33 +120,16 @@ class DataService {
     return newCustomer;
   }
 
-  /**
-   * Get customers by SPG phone
-   * @param {string} spgPhone - SPG phone number
-   * @returns {Array} Customer records
-   */
   async getCustomersBySpg(spgPhone) {
     const customers = await this.getCustomers();
     return customers.filter(c => c.spgPhone === spgPhone);
   }
 
-  /**
-   * Get customer count by date
-   * @param {string} date - Date (YYYY-MM-DD)
-   * @returns {number} Customer count
-   */
   async getCustomerCountByDate(date) {
     const customers = await this.getCustomers();
     return customers.filter(c => c.date === date).length;
   }
 
-  // ==================== STATISTICS METHODS ====================
-
-  /**
-   * Get daily statistics
-   * @param {string} date - Date (YYYY-MM-DD), defaults to today
-   * @returns {Object} Statistics
-   */
   async getDailyStats(date = getCurrentDate()) {
     const attendance = await this.getAttendance();
     const customers = await this.getCustomers();
@@ -214,10 +151,6 @@ class DataService {
     };
   }
 
-  /**
-   * Get all SPG/SPB list
-   * @returns {Array} List of unique SPG/SPB phone numbers
-   */
   async getSpgList() {
     const attendance = await this.getAttendance();
     const customers = await this.getCustomers();
@@ -231,5 +164,4 @@ class DataService {
   }
 }
 
-// Export singleton instance
 module.exports = new DataService();

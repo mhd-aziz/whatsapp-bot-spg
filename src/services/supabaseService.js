@@ -14,9 +14,6 @@ class SupabaseService {
     this.initialize();
   }
 
-  /**
-   * Initialize Supabase client
-   */
   initialize() {
     if (!config.supabase.url || !config.supabase.anonKey) {
       logger.warn('Supabase credentials not configured. Using local storage only.');
@@ -37,21 +34,10 @@ class SupabaseService {
     }
   }
 
-  /**
-   * Check if Supabase is available
-   * @returns {boolean}
-   */
   isAvailable() {
     return this.isConnected && this.client !== null;
   }
 
-  // ==================== ATTENDANCE METHODS ====================
-
-  /**
-   * Save attendance record to Supabase
-   * @param {Object} record - Attendance record
-   * @returns {Promise<Object|null>} Saved record or null
-   */
   async saveAttendance(record) {
     if (!this.isAvailable()) return null;
 
@@ -71,7 +57,6 @@ class SupabaseService {
         .single();
 
       if (error) throw error;
-      logger.debug('Attendance saved to Supabase', data.id);
       return data;
     } catch (error) {
       logger.error('Failed to save attendance to Supabase', error.message);
@@ -79,11 +64,6 @@ class SupabaseService {
     }
   }
 
-  /**
-   * Get attendance records from Supabase
-   * @param {Object} options - Query options
-   * @returns {Promise<Array>}
-   */
   async getAttendance(options = {}) {
     if (!this.isAvailable()) return [];
 
@@ -96,9 +76,6 @@ class SupabaseService {
       if (options.date) {
         query = query.eq('date', options.date);
       }
-      if (options.startDate && options.endDate) {
-        query = query.gte('date', options.startDate).lte('date', options.endDate);
-      }
 
       const { data, error } = await query.order('timestamp', { ascending: false });
 
@@ -110,13 +87,24 @@ class SupabaseService {
     }
   }
 
-  // ==================== CUSTOMER METHODS ====================
+  async deleteAttendance(phone, date) {
+    if (!this.isAvailable()) return false;
 
-  /**
-   * Save customer record to Supabase
-   * @param {Object} customer - Customer data
-   * @returns {Promise<Object|null>}
-   */
+    try {
+      const { error } = await this.client
+        .from('attendance')
+        .delete()
+        .eq('phone', phone)
+        .eq('date', date);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      logger.error('Failed to delete attendance from Supabase', error.message);
+      return false;
+    }
+  }
+
   async saveCustomer(customer) {
     if (!this.isAvailable()) return null;
 
@@ -135,7 +123,6 @@ class SupabaseService {
         .single();
 
       if (error) throw error;
-      logger.debug('Customer saved to Supabase', data.id);
       return data;
     } catch (error) {
       logger.error('Failed to save customer to Supabase', error.message);
@@ -143,11 +130,6 @@ class SupabaseService {
     }
   }
 
-  /**
-   * Get customer records from Supabase
-   * @param {Object} options - Query options
-   * @returns {Promise<Array>}
-   */
   async getCustomers(options = {}) {
     if (!this.isAvailable()) return [];
 
@@ -171,86 +153,12 @@ class SupabaseService {
     }
   }
 
-  // ==================== USER METHODS ====================
-
-  /**
-   * Get or create user profile
-   * @param {string} phone - User phone number
-   * @param {string} name - User name (optional)
-   * @returns {Promise<Object|null>}
-   */
-  async getOrCreateUser(phone, name = null) {
-    if (!this.isAvailable()) return null;
-
-    try {
-      // Try to get existing user
-      const { data: existingUser, error: fetchError } = await this.client
-        .from('users')
-        .select('*')
-        .eq('phone', phone)
-        .single();
-
-      if (existingUser) return existingUser;
-
-      // Create new user
-      const { data: newUser, error: createError } = await this.client
-        .from('users')
-        .insert([{
-          phone,
-          name: name || phone,
-          role: 'spg', // Default role
-        }])
-        .select()
-        .single();
-
-      if (createError) throw createError;
-      logger.info('New user created in Supabase', phone);
-      return newUser;
-    } catch (error) {
-      logger.error('Failed to get/create user in Supabase', error.message);
-      return null;
-    }
-  }
-
-  /**
-   * Update user profile
-   * @param {string} phone - User phone number
-   * @param {Object} updates - Fields to update
-   * @returns {Promise<Object|null>}
-   */
-  async updateUser(phone, updates) {
-    if (!this.isAvailable()) return null;
-
-    try {
-      const { data, error } = await this.client
-        .from('users')
-        .update(updates)
-        .eq('phone', phone)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      logger.error('Failed to update user in Supabase', error.message);
-      return null;
-    }
-  }
-
-  // ==================== STATISTICS ====================
-
-  /**
-   * Get statistics from Supabase
-   * @param {string} date - Date (YYYY-MM-DD)
-   * @returns {Promise<Object>}
-   */
   async getStats(date) {
     if (!this.isAvailable()) {
       return { attendance: { masuk: 0, pulang: 0 }, customers: 0 };
     }
 
     try {
-      // Get attendance count
       const { count: masukCount } = await this.client
         .from('attendance')
         .select('*', { count: 'exact', head: true })
@@ -263,7 +171,6 @@ class SupabaseService {
         .eq('date', date)
         .eq('type', 'pulang');
 
-      // Get customer count
       const { count: customerCount } = await this.client
         .from('customers')
         .select('*', { count: 'exact', head: true })
@@ -283,5 +190,4 @@ class SupabaseService {
   }
 }
 
-// Export singleton instance
 module.exports = new SupabaseService();
