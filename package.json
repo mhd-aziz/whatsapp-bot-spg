@@ -1,24 +1,37 @@
 {
   "name": "whatsapp-bot-spg",
-  "version": "1.0.0",
-  "description": "WhatsApp Bot untuk monitoring SPG/SPB Grab",
+  "version": "2.0.0",
+  "description": "WhatsApp Bot untuk monitoring SPG/SPB dengan fitur absensi dan registrasi customer",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "test": "bash test-quick.sh",
+    "verify": "node -e \"require('./src/config'); require('./src/utils/helpers'); require('./src/services/dataService'); require('./src/handlers/commandHandler'); console.log('✅ All modules verified');\""
   },
+  "keywords": [
+    "whatsapp",
+    "bot",
+    "attendance",
+    "monitoring",
+    "spg",
+    "spb"
+  ],
+  "author": "",
+  "license": "MIT",
   "dependencies": {
-    "whatsapp-web.js": "^1.23.0",
-    "qrcode-terminal": "^0.12.0",
-    "googleapis": "^140.0.0",
+    "@supabase/supabase-js": "^2.110.8",
     "dotenv": "^16.3.1",
+    "express": "^4.22.2",
+    "googleapis": "^140.0.0",
     "moment": "^2.29.4",
-    "node-fetch": "^2.7.0"
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.23.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
   },
-  "allowScripts": {
-    "puppeteer@24.38.0": true
+  "engines": {
+    "node": ">=16.0.0"
   }
 }
