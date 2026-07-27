@@ -51,10 +51,33 @@ class AttendanceHandler {
           }
         } catch (downloadError) {
           retryCount++;
-          const errorMsg = downloadError?.message || downloadError?.toString() || 'Unknown error';
+          
+          // Extract error details more carefully
+          let errorMsg = 'Unknown error';
+          let errorStack = '';
+          
+          if (downloadError) {
+            if (typeof downloadError === 'string') {
+              errorMsg = downloadError;
+            } else if (downloadError.message) {
+              errorMsg = downloadError.message;
+            } else if (downloadError.toString && typeof downloadError.toString === 'function') {
+              errorMsg = downloadError.toString();
+            } else {
+              // Try to stringify the error object
+              try {
+                errorMsg = JSON.stringify(downloadError);
+              } catch (e) {
+                errorMsg = 'Error object cannot be serialized';
+              }
+            }
+            
+            if (downloadError.stack) {
+              errorStack = downloadError.stack;
+            }
+          }
           
           if (retryCount >= maxRetries) {
-            const errorStack = downloadError?.stack || '';
             logger.error('Error downloading media for masuk after retries', `${errorMsg}\n${errorStack}`);
             await msg.reply(
               '❌ Gagal mengunduh foto setelah beberapa percobaan.\n\n' +
@@ -169,10 +192,33 @@ class AttendanceHandler {
           }
         } catch (downloadError) {
           retryCount++;
-          const errorMsg = downloadError?.message || downloadError?.toString() || 'Unknown error';
+          
+          // Extract error details more carefully
+          let errorMsg = 'Unknown error';
+          let errorStack = '';
+          
+          if (downloadError) {
+            if (typeof downloadError === 'string') {
+              errorMsg = downloadError;
+            } else if (downloadError.message) {
+              errorMsg = downloadError.message;
+            } else if (downloadError.toString && typeof downloadError.toString === 'function') {
+              errorMsg = downloadError.toString();
+            } else {
+              // Try to stringify the error object
+              try {
+                errorMsg = JSON.stringify(downloadError);
+              } catch (e) {
+                errorMsg = 'Error object cannot be serialized';
+              }
+            }
+            
+            if (downloadError.stack) {
+              errorStack = downloadError.stack;
+            }
+          }
           
           if (retryCount >= maxRetries) {
-            const errorStack = downloadError?.stack || '';
             logger.error('Error downloading media for masuk after retries', `${errorMsg}\n${errorStack}`);
             await msg.reply(
               '❌ Gagal mengunduh foto setelah beberapa percobaan.\n\n' +
