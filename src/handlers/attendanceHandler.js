@@ -38,9 +38,17 @@ class AttendanceHandler {
 
       // Download photo
       await msg.reply('⏳ Sedang memproses absensi...');
-      const media = await msg.downloadMedia();
+      
+      let media;
+      try {
+        media = await msg.downloadMedia();
+      } catch (downloadError) {
+        logger.error('Error downloading media for masuk', downloadError.message || downloadError);
+        await msg.reply('❌ Gagal mengunduh foto. Pastikan foto terkirim dengan benar dan coba lagi.');
+        return;
+      }
 
-      if (!media) {
+      if (!media || !media.data) {
         await msg.reply('❌ Gagal mengunduh foto. Silakan coba lagi.');
         return;
       }
@@ -124,9 +132,17 @@ class AttendanceHandler {
 
       // Download photo
       await msg.reply('⏳ Sedang memproses absensi...');
-      const media = await msg.downloadMedia();
+      
+      let media;
+      try {
+        media = await msg.downloadMedia();
+      } catch (downloadError) {
+        logger.error('Error downloading media for masuk', downloadError.message || downloadError);
+        await msg.reply('❌ Gagal mengunduh foto. Pastikan foto terkirim dengan benar dan coba lagi.');
+        return;
+      }
 
-      if (!media) {
+      if (!media || !media.data) {
         await msg.reply('❌ Gagal mengunduh foto. Silakan coba lagi.');
         return;
       }
