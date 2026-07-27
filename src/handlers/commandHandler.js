@@ -6,6 +6,8 @@
 const attendanceHandler = require('./attendanceHandler');
 const customerHandler = require('./customerHandler');
 const adminHandler = require('./adminHandler');
+const sessionService = require('../services/sessionService');
+const { extractPhoneNumber } = require('../utils/helpers');
 const logger = require('../utils/logger');
 
 class CommandHandler {
@@ -17,7 +19,9 @@ class CommandHandler {
   async handleMessage(msg, client) {
     try {
       // Handle photo messages first (for 2-step attendance flow)
-      if (msg.hasMedia && msg.type === 'image') {
+      const phone = extractPhoneNumber(msg.from);
+      const session = sessionService.getSession(phone);
+      if (msg.hasMedia && msg.type === 'image' && session && session.state && session.state.command) {
         await attendanceHandler.handlePhotoMessage(msg);
         return;
       }

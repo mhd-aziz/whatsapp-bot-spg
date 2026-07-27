@@ -81,8 +81,8 @@ class AttendanceHandler {
    * @returns {boolean}
    */
   isSessionValid(session) {
-    if (!session || !session.timestamp) return false;
-    return (Date.now() - session.timestamp) < SESSION_TIMEOUT_MS;
+    if (!session || !session.state || !session.state.timestamp) return false;
+    return (Date.now() - session.state.timestamp) < SESSION_TIMEOUT_MS;
   }
 
   /**
@@ -115,6 +115,36 @@ class AttendanceHandler {
   }
 
   /**
+   * Handle 'status' command - Show today's attendance status
+   * @param {Object} msg - WhatsApp message object
+   */
+  async handleStatus(msg) {
+    try {
+      const phone = extractPhoneNumber(msg.from);
+      const todayAttendance = await storageService.getTodayAttendance(phone);
+
+      if (!todayAttendance) {
+        await msg.reply('📋 *Status Absensi Hari Ini*\n\n❌ Belum ada absensi.\n\nKirim /masuk untuk absen masuk.');
+        return;
+      }
+
+      const emoji = todayAttendance.type === 'masuk' ? '✅' : '🏠';
+      const label = todayAttendance.type === 'masuk' ? 'MASUK' : 'PULANG';
+
+      await msg.reply(
+        `📋 *Status Absensi Hari Ini*\n\n` +
+        `${emoji} Status: *${label}*\n` +
+        `📅 Tanggal: ${todayAttendance.date}\n` +
+        `⏰ Waktu: ${todayAttendance.timestamp}\n` +
+        (todayAttendance.photo ? `📷 Foto: Tersimpan\n` : '')
+      );
+    } catch (error) {
+      logger.error('Error handling status command', error);
+      await msg.reply('❌ Terjadi kesalahan saat mengecek status.');
+    }
+  }
+
+  /**
    * Handle photo message - STEP 2: Process attendance
    * @param {Object} msg - WhatsApp message object
    */
@@ -123,7 +153,7 @@ class AttendanceHandler {
     const session = sessionService.getSession(phone);
 
     // No active session → ignore photo (not in attendance flow)
-    if (!session || !session.command) {
+    if (!session || !session.state || !session.state.command) {
       return false;
     }
 
@@ -140,7 +170,7 @@ class AttendanceHandler {
       return true;
     }
 
-    const attendanceType = session.command === 'waiting_photo_masuk' ? 'masuk' : 'pulang';
+    const attendanceType = session.state.command === 'waiting_photo_masuk' ? 'masuk' : 'pulang';
 
     // Clear session immediately (prevent double processing)
     sessionService.clearSession(phone);
