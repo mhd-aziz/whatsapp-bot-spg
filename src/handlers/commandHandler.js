@@ -23,6 +23,12 @@ class CommandHandler {
     const lowerBody = body.toLowerCase();
     
     try {
+      // Check if this is a photo message (for 2-step attendance flow)
+      if (msg.hasMedia && msg.type === 'image') {
+        await attendanceHandler.handlePhotoMessage(msg);
+        return;
+      }
+
       // Handle customer data format (nama#hp#kota)
       if (body.includes('#') && !body.startsWith('/')) {
         await customerHandler.handleCustomerData(msg, body);
