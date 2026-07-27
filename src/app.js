@@ -4,7 +4,7 @@
  */
 
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
+const QRCode = require('qrcode');
 const express = require('express');
 const { config, validateConfig } = require('./config');
 const commandHandler = require('./handlers/commandHandler');
@@ -109,7 +109,9 @@ class WhatsAppBot {
     // QR Code event
     this.client.on('qr', (qr) => {
       logger.botEvent('QR Code received', 'Scan with WhatsApp');
-      qrcode.generate(qr, { small: true });
+      QRCode.toString(qr, { type: 'terminal', small: true, margin: 0 }, (err, qrStr) => {
+        if (!err) console.log(qrStr);
+      });
       console.log('\n📱 Scan QR code di atas dengan WhatsApp untuk login.\n');
     });
 
