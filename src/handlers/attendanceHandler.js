@@ -25,7 +25,7 @@ class AttendanceHandler {
         return;
       }
 
-      // Check if message has photo
+      // Check if message has media
       if (!msg.hasMedia) {
         await msg.reply(
           '📸 *Absen Masuk*\n\n' +
@@ -33,6 +33,12 @@ class AttendanceHandler {
           '/masuk\n\n' +
           'Dan lampirkan foto selfie kamu di lokasi.'
         );
+        return;
+      }
+
+      // Verify media type is image
+      if (msg.type !== 'image' && msg.type !== 'sticker') {
+        await msg.reply('❌ Hanya foto/gambar yang diterima untuk absensi.\n\nKirim ulang dengan foto selfie kamu.');
         return;
       }
 
