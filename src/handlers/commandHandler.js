@@ -15,19 +15,20 @@ class CommandHandler {
    * @param {Object} client - WhatsApp client
    */
   async handleMessage(msg, client) {
-    // Handle photo messages first (for 2-step attendance flow)
-    if (msg.hasMedia && msg.type === 'image') {
-      await attendanceHandler.handlePhotoMessage(msg);
-      return;
-    }
+    try {
+      // Handle photo messages first (for 2-step attendance flow)
+      if (msg.hasMedia && msg.type === 'image') {
+        await attendanceHandler.handlePhotoMessage(msg);
+        return;
+      }
 
-    // Get body safely
-    const body = (msg.body || '').trim();
-    
-    // Skip if empty
-    if (!body) return;
+      // Get body safely
+      const body = (msg.body || '').trim();
+      
+      // Skip if empty
+      if (!body) return;
 
-    const lowerBody = body.toLowerCase();
+      const lowerBody = body.toLowerCase();
 
       // Handle customer data format (nama#hp#kota)
       if (body.includes('#') && !body.startsWith('/')) {
