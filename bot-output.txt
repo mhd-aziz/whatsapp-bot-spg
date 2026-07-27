@@ -1,0 +1,11 @@
+Bot is running in background.
+
+To see the QR code and bot output, you need to check the terminal output directly.
+
+Please run this command in your terminal to see the bot output:
+cd /home/ubuntu/projects/whatsapp-bot-spg && npm start
+
+Or check the process log with:
+tail -f /proc/37857/fd/1
+
+The bot process is running with PID: 37857

@@ -36,18 +36,40 @@ class AttendanceHandler {
         return;
       }
 
-      // Download photo
+      // Download photo with retry logic
       await msg.reply('⏳ Sedang memproses absensi...');
       
       let media;
-      try {
-        media = await msg.downloadMedia();
-      } catch (downloadError) {
-        const errorMsg = downloadError?.message || downloadError?.toString() || 'Unknown error';
-        const errorStack = downloadError?.stack || '';
-        logger.error('Error downloading media for masuk', `${errorMsg}\n${errorStack}`);
-        await msg.reply('❌ Gagal mengunduh foto. Pastikan foto terkirim dengan benar dan coba lagi.');
-        return;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          media = await msg.downloadMedia();
+          if (media && media.data) {
+            break; // Success
+          }
+        } catch (downloadError) {
+          retryCount++;
+          const errorMsg = downloadError?.message || downloadError?.toString() || 'Unknown error';
+          
+          if (retryCount >= maxRetries) {
+            const errorStack = downloadError?.stack || '';
+            logger.error('Error downloading media for masuk after retries', `${errorMsg}\n${errorStack}`);
+            await msg.reply(
+              '❌ Gagal mengunduh foto setelah beberapa percobaan.\n\n' +
+              'Tips:\n' +
+              '• Pastikan foto terkirim dengan benar\n' +
+              '• Coba kirim foto dengan ukuran lebih kecil\n' +
+              '• Jangan kirim sebagai dokumen, kirim sebagai foto biasa'
+            );
+            return;
+          }
+          
+          // Wait before retry
+          logger.warn(`Retry downloading media (${retryCount}/${maxRetries})...`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        }
       }
 
       if (!media || !media.data) {
@@ -132,18 +154,40 @@ class AttendanceHandler {
         return;
       }
 
-      // Download photo
+      // Download photo with retry logic
       await msg.reply('⏳ Sedang memproses absensi...');
       
       let media;
-      try {
-        media = await msg.downloadMedia();
-      } catch (downloadError) {
-        const errorMsg = downloadError?.message || downloadError?.toString() || 'Unknown error';
-        const errorStack = downloadError?.stack || '';
-        logger.error('Error downloading media for masuk', `${errorMsg}\n${errorStack}`);
-        await msg.reply('❌ Gagal mengunduh foto. Pastikan foto terkirim dengan benar dan coba lagi.');
-        return;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          media = await msg.downloadMedia();
+          if (media && media.data) {
+            break; // Success
+          }
+        } catch (downloadError) {
+          retryCount++;
+          const errorMsg = downloadError?.message || downloadError?.toString() || 'Unknown error';
+          
+          if (retryCount >= maxRetries) {
+            const errorStack = downloadError?.stack || '';
+            logger.error('Error downloading media for masuk after retries', `${errorMsg}\n${errorStack}`);
+            await msg.reply(
+              '❌ Gagal mengunduh foto setelah beberapa percobaan.\n\n' +
+              'Tips:\n' +
+              '• Pastikan foto terkirim dengan benar\n' +
+              '• Coba kirim foto dengan ukuran lebih kecil\n' +
+              '• Jangan kirim sebagai dokumen, kirim sebagai foto biasa'
+            );
+            return;
+          }
+          
+          // Wait before retry
+          logger.warn(`Retry downloading media (${retryCount}/${maxRetries})...`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        }
       }
 
       if (!media || !media.data) {

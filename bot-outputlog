@@ -1,0 +1,21 @@
+[2026-07-27 00:46:21] [INFO] Supabase client initialized successfully
+====================================
+  WhatsApp Bot SPG/SPB Monitoring
+====================================
+
+[2026-07-27 00:46:21] [INFO] Initializing WhatsApp Bot...
+[2026-07-27 00:46:21] [INFO] Storage services initialized
+[2026-07-27 00:46:21] [ERROR] Uncaught Exception Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:2009:16)
+    at listenInCluster (node:net:2066:12)
+    at Server.listen (node:net:2171:7)
+    at app.listen (/home/ubuntu/projects/whatsapp-bot-spg/node_modules/express/lib/application.js:635:24)
+    at WhatsAppBot.initializeServer (/home/ubuntu/projects/whatsapp-bot-spg/src/app.js:60:14)
+    at WhatsAppBot.initialize (/home/ubuntu/projects/whatsapp-bot-spg/src/app.js:34:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 3000
+}

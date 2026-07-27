@@ -68,22 +68,21 @@ class WhatsAppBot {
   initializeWhatsApp() {
     // Puppeteer options
     const puppeteerOptions = {
-      headless: true,
-      executablePath: '/usr/bin/chromium-browser',
+      headless: 'new',
+      executablePath: '/snap/bin/chromium',
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
-        '--no-zygote',
         '--disable-gpu',
-        '--single-process',
-        '--no-zygote',
+        '--disable-software-rasterizer',
+        '--disable-extensions',
       ],
     };
 
-    // Add executable path if configured
+    // Override with config if provided
     if (config.puppeteer.executablePath) {
       puppeteerOptions.executablePath = config.puppeteer.executablePath;
     }
