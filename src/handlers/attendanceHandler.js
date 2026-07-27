@@ -85,14 +85,11 @@ class AttendanceHandler {
           
           if (retryCount >= maxRetries) {
             logger.error('Error downloading media for masuk after retries', `${errorMsg}\n${errorStack}`);
-            await msg.reply(
-              '❌ Gagal mengunduh foto setelah beberapa percobaan.\n\n' +
-              'Tips:\n' +
-              '• Pastikan foto terkirim dengan benar\n' +
-              '• Coba kirim foto dengan ukuran lebih kecil\n' +
-              '• Jangan kirim sebagai dokumen, kirim sebagai foto biasa'
-            );
-            return;
+            // SKIP FOTO - Continue without photo instead of failing
+            logger.warn('Continuing attendance without photo due to download error');
+            await msg.reply('⚠️ Gagal download foto, tapi absensi tetap diproses...');
+            media = null; // Set null to skip photo
+            break;
           }
           
           // Wait before retry
@@ -102,17 +99,18 @@ class AttendanceHandler {
       }
 
       if (!media || !media.data) {
-        await msg.reply('❌ Gagal mengunduh foto. Silakan coba lagi.');
-        return;
+        logger.warn('No media data available, proceeding without photo');
       }
 
-      // Save photo
-      const photoFilename = `${phone}_${Date.now()}.jpg`;
-      const savedPhoto = await storageService.savePhoto(media, photoFilename);
-
-      if (!savedPhoto) {
-        await msg.reply('❌ Gagal menyimpan foto. Silakan coba lagi.');
-        return;
+      // Save photo if available
+      let savedPhoto = null;
+      if (media && media.data) {
+        const photoFilename = `${phone}_${Date.now()}.jpg`;
+        savedPhoto = await storageService.savePhoto(media, photoFilename);
+        
+        if (!savedPhoto) {
+          logger.warn('Failed to save photo, continuing without it');
+        }
       }
 
       // Get location if available
@@ -226,14 +224,11 @@ class AttendanceHandler {
           
           if (retryCount >= maxRetries) {
             logger.error('Error downloading media for masuk after retries', `${errorMsg}\n${errorStack}`);
-            await msg.reply(
-              '❌ Gagal mengunduh foto setelah beberapa percobaan.\n\n' +
-              'Tips:\n' +
-              '• Pastikan foto terkirim dengan benar\n' +
-              '• Coba kirim foto dengan ukuran lebih kecil\n' +
-              '• Jangan kirim sebagai dokumen, kirim sebagai foto biasa'
-            );
-            return;
+            // SKIP FOTO - Continue without photo instead of failing
+            logger.warn('Continuing attendance without photo due to download error');
+            await msg.reply('⚠️ Gagal download foto, tapi absensi tetap diproses...');
+            media = null; // Set null to skip photo
+            break;
           }
           
           // Wait before retry
@@ -243,17 +238,18 @@ class AttendanceHandler {
       }
 
       if (!media || !media.data) {
-        await msg.reply('❌ Gagal mengunduh foto. Silakan coba lagi.');
-        return;
+        logger.warn('No media data available, proceeding without photo');
       }
 
-      // Save photo
-      const photoFilename = `${phone}_${Date.now()}.jpg`;
-      const savedPhoto = await storageService.savePhoto(media, photoFilename);
-
-      if (!savedPhoto) {
-        await msg.reply('❌ Gagal menyimpan foto. Silakan coba lagi.');
-        return;
+      // Save photo if available
+      let savedPhoto = null;
+      if (media && media.data) {
+        const photoFilename = `${phone}_${Date.now()}.jpg`;
+        savedPhoto = await storageService.savePhoto(media, photoFilename);
+        
+        if (!savedPhoto) {
+          logger.warn('Failed to save photo, continuing without it');
+        }
       }
 
       // Get location if available
