@@ -11,7 +11,6 @@ const {
 } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const express = require('express');
-const fs = require('fs'); // TODO(dev-aid): hapus setelah sesi testing manual selesai
 const { config, validateConfig } = require('./config');
 const commandHandler = require('./handlers/commandHandler');
 const storageService = require('./services/storageService');
@@ -66,7 +65,6 @@ class WhatsAppBot {
 
       if (qr) {
         logger.botEvent('QR Code received', 'Scan with WhatsApp');
-        fs.writeFileSync('/tmp/spg-qr.txt', qr); // TODO(dev-aid): hapus setelah sesi testing manual selesai
       }
 
       if (connection === 'close') {
@@ -106,7 +104,7 @@ class WhatsAppBot {
     const altJid = msg.key.remoteJidAlt; // PN alternative when remoteJid is a LID (v7)
     const from = (altJid && /^(\d+)@/.test(altJid)) ? altJid : jid;
     const msgBody = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
-    logger.debug('Message received', { jid, alt: altJid, fromMe: msg.key.fromMe, body: msgBody.slice(0, 40) }); // TODO(dev-aid): hapus setelah sesi testing manual selesai
+    logger.debug('Message received', { jid, alt: altJid, fromMe: msg.key.fromMe, body: msgBody.slice(0, 40) });
     if (jid.includes('@g.us') || jid === 'status@broadcast') return;
 
     // Adapt Baileys message to match the handler's expectation

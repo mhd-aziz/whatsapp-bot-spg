@@ -12,6 +12,28 @@ const logger = require('../utils/logger');
 
 const ADMIN_COMMANDS = ['/stats', '/rekap', '/broadcast', '/hapus_absen', '/detail', '/admin'];
 
+// State yang mengunci pengguna: selama proses aktif, command lain diblokir
+const ACTIVE_WIZARD = (state) =>
+  state === 'customer_reg_name' ||
+  state === 'customer_reg_phone' ||
+  state === 'customer_reg_city' ||
+  state === 'waiting_photo_customer' ||
+  state === 'waiting_photo_checkin' ||
+  state === 'waiting_photo_checkout' ||
+  state.startsWith('edit_customer_');
+
+const WIZARD_LABELS = {
+  customer_reg_name: 'tambah customer',
+  customer_reg_phone: 'tambah customer',
+  customer_reg_city: 'tambah customer',
+  waiting_photo_customer: 'tambah customer (foto bukti)',
+  waiting_photo_checkin: 'absen masuk (foto lokasi)',
+  waiting_photo_checkout: 'absen pulang (foto lokasi)',
+  edit_customer_select: 'edit customer',
+  edit_customer_field: 'edit customer',
+  edit_customer_value: 'edit customer',
+};
+
 class CommandHandler {
   async handleMessage(msg, sock) {
     try {
@@ -28,14 +50,14 @@ class CommandHandler {
             await msg.reply(
               '📸 Foto diterima, tapi tidak ada proses yang membutuhkan foto saat ini.\n\n' +
               'Absensi: /masuk atau /pulang\n' +
-              'Customer: /customer Nama#NoHp#Kota'
+              'Customer: /customer'
             );
           }
         } else {
           await msg.reply(
             '📸 Foto diterima, tapi belum ada proses yang membutuhkan foto.\n\n' +
             'Absensi: /masuk atau /pulang\n' +
-            'Customer: /customer Nama#NoHp#Kota'
+            'Customer: /customer'
           );
         }
         return;
@@ -45,15 +67,48 @@ class CommandHandler {
       if (!body) return;
 
       const lowerBody = body.toLowerCase();
+      const isCancel = lowerBody === 'batal' || lowerBody === 'cancel' || lowerBody === 'keluar';
 
-      // Wizard edit customer: balasan nomor / nilai / batal (perintah '/' tetap diproses normal)
-      if (session && session.state && session.state.startsWith('edit_customer_') && !body.startsWith('/')) {
-        await customerHandler.handleEditCustomerReply(msg, body);
-        return;
-      }
+      // === LOCK: selama wizard/proses aktif, semua command lain diblokir ===
+      if (session && session.state && ACTIVE_WIZARD(session.state)) {
+        const label = WIZARD_LABELS[session.state] || 'proses';
 
-      if (body.includes('#') && !body.startsWith('/')) {
-        await customerHandler.handleSaveCustomer(msg, body);
+        // Command '/' saat proses aktif → blokir (harus selesaikan atau batal dulu)
+        if (!isCancel && body.startsWith('/')) {
+          await msg.reply(
+            `⚠️ Ada proses *${label}* yang belum selesai.\n\n` +
+            'Selesaikan dulu, atau ketik *batal* untuk membatalkannya.'
+          );
+          return;
+        }
+
+        // batal / balasan biasa → serahkan ke handler wizard
+        if (session.state.startsWith('customer_reg_')) {
+          await customerHandler.handleCustomerRegReply(msg, body);
+          return;
+        }
+        if (session.state.startsWith('edit_customer_')) {
+          await customerHandler.handleEditCustomerReply(msg, body);
+          return;
+        }
+        if (session.state === 'waiting_photo_customer') {
+          if (isCancel) {
+            sessionService.clearSession(phone);
+            await msg.reply('❌ Dibatalkan. Pelanggan sudah tersimpan tanpa foto.');
+          } else {
+            await msg.reply('📸 Kirim foto customer/bukti, atau ketik *batal* untuk membatalkan.');
+          }
+          return;
+        }
+        if (session.state === 'waiting_photo_checkin' || session.state === 'waiting_photo_checkout') {
+          if (isCancel) {
+            sessionService.clearSession(phone);
+            await msg.reply('❌ Dibatalkan. Absensi dibatalkan, kirim /masuk atau /pulang lagi kalau perlu.');
+          } else {
+            await msg.reply('📸 Kirim foto lokasi untuk absen, atau ketik *batal* untuk membatalkan.');
+          }
+          return;
+        }
         return;
       }
 
@@ -96,8 +151,7 @@ class CommandHandler {
         await attendanceHandler.handleStatus(msg, sock);
         break;
       case '/customer':
-        if (args) await customerHandler.handleSaveCustomer(msg, args);
-        else await customerHandler.handleCustomerHelp(msg);
+        await customerHandler.handleCustomerReg(msg, args);
         break;
       case '/list':
         await customerHandler.handleListCustomers(msg);
@@ -184,7 +238,7 @@ class CommandHandler {
       '/pulang - Absen pulang (dengan foto)\n' +
       '/status - Cek status + foto masuk/pulang\n\n' +
       '*Customer:*\n' +
-      '/customer - Daftarkan customer baru + foto bukti\n' +
+      '/customer - Daftarkan customer baru (wizard + foto bukti)\n' +
       '/list - Daftar customer\n' +
       '/detailcust <nama> - Detail lengkap customer + foto\n' +
       '/editcust - Edit data customer (menu bernomor, bisa juga /editcust <nama>)\n' +

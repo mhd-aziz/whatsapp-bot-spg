@@ -73,7 +73,7 @@ Scan QR code yang muncul di terminal dengan aplikasi WhatsApp di smartphone Anda
 | `/masuk` | Absen masuk — lanjut kirim foto selfie di lokasi |
 | `/pulang` | Absen pulang — lanjut kirim foto selfie di lokasi |
 | `/status` | Status absensi hari ini + foto masuk/pulang |
-| `/customer` | Registrasi customer baru (format `Nama#HP#Kota`) — lalu kirim foto bukti |
+| `/customer` | Registrasi customer baru (wizard: nama → HP → kota) — lalu kirim foto bukti |
 | `/list` | Daftar customer kamu |
 | `/detailcust <nama>` | Detail lengkap customer + foto |
 | `/editcust` | Edit data customer (menu bernomor — semua customer, terbaru di atas) |

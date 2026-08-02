@@ -137,6 +137,10 @@ class AttendanceHandler {
 
       const photoFilename = `${phone}_${Date.now()}.jpg`;
       const savedPhoto = await storageService.savePhoto({ data: buffer.toString('base64') }, photoFilename);
+      if (!savedPhoto) {
+        await msg.reply('❌ Gagal menyimpan foto ke server. Coba lagi dengan /' + attendanceType);
+        return true;
+      }
 
       await storageService.saveAttendance({
         phone,

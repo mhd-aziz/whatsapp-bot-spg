@@ -1,6 +1,6 @@
 /**
  * Customer Handler (Baileys Version)
- * Supports photo attachment: /customer Nama#NoHp#Kota → kirim foto bukti
+ * Supports photo attachment: /customer wizard → kirim foto bukti
  */
 
 const fs = require('fs').promises;
@@ -14,50 +14,108 @@ const SESSION_TIMEOUT_MS = 5 * 60 * 1000;
 class CustomerHandler {
   async handleCustomerHelp(msg) {
     await msg.reply(
-      '📝 *Registrasi Pelanggan Baru*\n\n' +
-      'Silakan kirim data dengan format:\n' +
-      '*Nama#NomorHP#Kota*\n\n' +
-      'Contoh: Budi#081234567890#Jakarta\n\n' +
-      '📸 Setelah itu kirim foto customer/bukti (berlaku 5 menit).'
+      '📝 *Registrasi Pelanggan Baru* (wizard)\n\n' +
+      'Ketik /customer lalu ikuti pertanyaan:\n' +
+      '1️⃣ Nama customer\n' +
+      '2️⃣ Nomor HP (08xx atau 628xx)\n' +
+      '3️⃣ Kota\n\n' +
+      '📸 Terakhir kirim foto customer/bukti.\n\n' +
+      'Ketik *batal* kapan saja untuk membatalkan.'
     );
   }
 
-  async handleSaveCustomer(msg, body) {
+  /** Mulai wizard registrasi customer. Args opsional = nama sudah diisi. */
+  async handleCustomerReg(msg, args) {
     try {
-      const parts = body.split('#');
-      if (parts.length < 3) {
-        await msg.reply('⚠️ Format salah. Gunakan: Nama#NomorHP#Kota');
+      const phone = extractPhoneNumber(msg.from);
+      const prefillName = (args || '').trim();
+
+      if (prefillName) {
+        sessionService.setSession(phone, 'customer_reg_phone', { name: prefillName });
+        await msg.reply(
+          `📱 Nomor HP untuk *${prefillName}*?\n\n` +
+          'Gunakan 08xx atau 628xx. Ketik *batal* untuk membatalkan.'
+        );
         return;
       }
 
-      const [name, phone, city] = parts.map(p => p.trim());
-      if (!name || !phone) {
-        await msg.reply('⚠️ Nama dan nomor HP tidak boleh kosong.\n\nFormat: Nama#NomorHP#Kota');
-        return;
-      }
-
-      const spgPhone = extractPhoneNumber(msg.from);
-
-      const saved = await storageService.saveCustomer({
-        name,
-        phone,
-        city,
-        spg_phone: spgPhone,
-      });
-
-      // Ask for the customer photo (proof) right after saving the data
-      sessionService.setSession(spgPhone, 'waiting_photo_customer', {
-        timestamp: Date.now(),
-        customerId: saved.id,
-      });
-
-      await msg.reply(
-        `✅ Pelanggan *${name}* berhasil didaftarkan!\n\n` +
-        `📸 Sekarang kirim foto customer/bukti (berlaku 5 menit).`
-      );
+      sessionService.setSession(phone, 'customer_reg_name', {});
+      await msg.reply('👤 Siapa nama customer?\n\nKetik *batal* untuk membatalkan.');
     } catch (error) {
-      logger.error('Error saving customer data', error);
-      await msg.reply('❌ Gagal menyimpan data pelanggan.');
+      logger.error('Error starting customer registration', error);
+      await msg.reply('❌ Gagal memulai registrasi customer.');
+    }
+  }
+
+  /** Balasan selama wizard registrasi: nama → HP → kota → simpan + minta foto */
+  async handleCustomerRegReply(msg, body) {
+    try {
+      const phone = extractPhoneNumber(msg.from);
+      const lower = (body || '').trim().toLowerCase();
+
+      if (lower === 'batal' || lower === 'cancel' || lower === 'keluar') {
+        sessionService.clearSession(phone);
+        await msg.reply('❌ Dibatalkan. Customer tidak jadi didaftarkan.');
+        return;
+      }
+
+      const session = sessionService.getSession(phone);
+      if (!session || !session.state || !session.state.startsWith('customer_reg_')) {
+        await msg.reply('ℹ️ Sesi registrasi sudah habis. Ketik /customer untuk mulai lagi.');
+        return;
+      }
+
+      if (session.state === 'customer_reg_name') {
+        const name = body.trim();
+        if (!name) {
+          await msg.reply('⚠️ Nama tidak boleh kosong. Ketik *batal* untuk membatalkan.');
+          return;
+        }
+        sessionService.setSession(phone, 'customer_reg_phone', { name });
+        await msg.reply(
+          `📱 Nomor HP untuk *${name}*?\n\n` +
+          'Gunakan 08xx atau 628xx. Ketik *batal* untuk membatalkan.'
+        );
+        return;
+      }
+
+      if (session.state === 'customer_reg_phone') {
+        const phoneRaw = body.trim();
+        if (!/^\d{9,}$/.test(phoneRaw)) {
+          await msg.reply('⚠️ No HP tidak valid. Gunakan angka saja (contoh: 087876629341).\n\nKetik *batal* untuk membatalkan.');
+          return;
+        }
+        sessionService.setSession(phone, 'customer_reg_city', { ...session.data, phone: phoneRaw });
+        await msg.reply(`📍 Kota untuk *${session.data.name}*?\n\nKetik *batal* untuk membatalkan.`);
+        return;
+      }
+
+      if (session.state === 'customer_reg_city') {
+        const city = body.trim();
+        if (!city) {
+          await msg.reply('⚠️ Kota tidak boleh kosong. Ketik *batal* untuk membatalkan.');
+          return;
+        }
+        const { name, phone: phoneRaw } = session.data;
+        const saved = await storageService.saveCustomer({
+          name,
+          phone: phoneRaw,
+          city,
+          spg_phone: phone,
+        });
+        sessionService.setSession(phone, 'waiting_photo_customer', {
+          timestamp: Date.now(),
+          customerId: saved.id,
+        });
+        await msg.reply(
+          `✅ Pelanggan *${name}* berhasil didaftarkan!\n\n` +
+          '📸 Sekarang kirim foto customer/bukti (berlaku 5 menit).'
+        );
+        return;
+      }
+    } catch (error) {
+      logger.error('Error in customer registration wizard', error);
+      await msg.reply('❌ Terjadi kesalahan. Mulai lagi dengan /customer.');
     }
   }
 
@@ -69,7 +127,7 @@ class CustomerHandler {
 
     if (Date.now() - session.data.timestamp > SESSION_TIMEOUT_MS) {
       sessionService.clearSession(phone);
-      await msg.reply('⏰ Session foto customer sudah expired.\n\nSilakan kirim /customer Nama#NoHp#Kota lagi.');
+      await msg.reply('⏰ Session foto customer sudah expired.\n\nSilakan kirim /customer lagi.');
       return true;
     }
 
@@ -78,7 +136,7 @@ class CustomerHandler {
 
     if (!customerId) {
       logger.warn(`Customer photo session without customerId: ${phone}`);
-      await msg.reply('❌ Data customer tidak ditemukan. Silakan daftar ulang dengan /customer Nama#NoHp#Kota.');
+      await msg.reply('❌ Data customer tidak ditemukan. Silakan daftar ulang dengan /customer.');
       return true;
     }
 
@@ -99,6 +157,10 @@ class CustomerHandler {
 
       const photoFilename = `customer_${phone}_${Date.now()}.jpg`;
       const savedPhoto = await storageService.savePhoto({ data: buffer.toString('base64') }, photoFilename);
+      if (!savedPhoto) {
+        await msg.reply('❌ Gagal menyimpan foto ke server. Coba kirim foto lagi.');
+        return true;
+      }
       await storageService.updateCustomerPhoto(customerId, savedPhoto);
 
       await msg.reply('✅ Foto customer berhasil disimpan!');
@@ -206,7 +268,7 @@ class CustomerHandler {
       const customers = await storageService.getSpgCustomers(phone);
 
       if (customers.length === 0) {
-        await msg.reply('📋 Belum ada pelanggan untuk diedit.\nDaftarkan dulu dengan /customer Nama#NoHp#Kota.');
+        await msg.reply('📋 Belum ada pelanggan untuk diedit.\nDaftarkan dulu dengan /customer.');
         return;
       }
 
@@ -320,7 +382,7 @@ class CustomerHandler {
           await msg.reply('⚠️ Nilai tidak boleh kosong.\n\nKetik *batal* untuk keluar.');
           return;
         }
-        if (field === 'phone' && !(/^\d+$/.test(value) && value.replace(/\D/g, '').length >= 9)) {
+        if (field === 'phone' && !/^\d{9,}$/.test(value)) {
           await msg.reply('⚠️ No HP tidak valid. Gunakan angka saja (contoh: 087876629341).\n\nAtau ketik *batal* untuk keluar.');
           return;
         }

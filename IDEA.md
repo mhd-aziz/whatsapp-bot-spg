@@ -65,7 +65,7 @@ whatsapp-bot-spg/
 | `/masuk` → kirim foto | Absen masuk (anti duplikat per hari) |
 | `/pulang` → kirim foto | Absen pulang (anti duplikat per hari) |
 | `/status` | Status absensi hari ini + foto masuk/pulang |
-| `/customer` / pesan `Nama#HP#Kota` | Registrasi customer — lalu kirim foto bukti |
+| `/customer` | Registrasi customer baru (wizard: nama → HP → kota) — lalu kirim foto bukti |
 | `/list` | Daftar customer (teks, tanpa foto) |
 | `/detailcust <nama>` | Detail lengkap 1 customer + foto |
 | `/editcust` | Wizard edit: menu bernomor → pilih customer → pilih field → ketik nilai (batal untuk keluar) |
