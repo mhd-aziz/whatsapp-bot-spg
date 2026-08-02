@@ -76,7 +76,8 @@ Scan QR code yang muncul di terminal dengan aplikasi WhatsApp di smartphone Anda
 | `/customer` | Registrasi customer baru (format `Nama#HP#Kota`) — lalu kirim foto bukti |
 | `/list` | Daftar customer kamu |
 | `/detailcust <nama>` | Detail lengkap customer + foto |
-| `/editcust <nama>#<field>#<nilai>` | Edit data customer (field: nama, hp, kota) |
+| `/editcust` | Edit data customer (menu bernomor — semua customer, terbaru di atas) |
+| `/editcust <nama>` | Edit customer langsung (lompat ke pilihan field) |
 | `/total` | Total customer kamu |
 | `/help` | Daftar perintah |
 | `/ping` | Cek bot aktif |

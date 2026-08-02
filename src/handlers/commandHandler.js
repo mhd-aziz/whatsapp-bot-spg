@@ -22,8 +22,14 @@ class CommandHandler {
         if (session && session.state) {
           if (session.state === 'waiting_photo_customer') {
             await customerHandler.handleCustomerPhoto(msg);
-          } else {
+          } else if (session.state === 'waiting_photo_checkin' || session.state === 'waiting_photo_checkout') {
             await attendanceHandler.handlePhotoMessage(msg);
+          } else {
+            await msg.reply(
+              '📸 Foto diterima, tapi tidak ada proses yang membutuhkan foto saat ini.\n\n' +
+              'Absensi: /masuk atau /pulang\n' +
+              'Customer: /customer Nama#NoHp#Kota'
+            );
           }
         } else {
           await msg.reply(
@@ -39,6 +45,12 @@ class CommandHandler {
       if (!body) return;
 
       const lowerBody = body.toLowerCase();
+
+      // Wizard edit customer: balasan nomor / nilai / batal (perintah '/' tetap diproses normal)
+      if (session && session.state && session.state.startsWith('edit_customer_') && !body.startsWith('/')) {
+        await customerHandler.handleEditCustomerReply(msg, body);
+        return;
+      }
 
       if (body.includes('#') && !body.startsWith('/')) {
         await customerHandler.handleSaveCustomer(msg, body);
@@ -175,7 +187,7 @@ class CommandHandler {
       '/customer - Daftarkan customer baru + foto bukti\n' +
       '/list - Daftar customer\n' +
       '/detailcust <nama> - Detail lengkap customer + foto\n' +
-      '/editcust <nama>#<field>#<nilai> - Edit data customer (nama/hp/kota)\n' +
+      '/editcust - Edit data customer (menu bernomor, bisa juga /editcust <nama>)\n' +
       '/total - Total customer\n\n' +
       '*Lainnya:*\n' +
       '/help - Bantuan\n' +

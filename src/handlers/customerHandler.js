@@ -145,13 +145,17 @@ class CustomerHandler {
 
       const customers = await storageService.getSpgCustomers(phone);
       const matches = customers.filter((c) => c.name.toLowerCase().includes(query));
+      // Prefer exact name match; only show a choice list when no exact match exists
+      const exact = matches.find((c) => c.name.toLowerCase() === query);
+      const ambiguous = !exact && matches.length > 1;
+      const target = exact || matches[0];
 
       if (matches.length === 0) {
         await msg.reply(`🔍 Customer dengan nama *"${rawQuery}"* tidak ditemukan.`);
         return;
       }
 
-      if (matches.length > 1) {
+      if (ambiguous) {
         let text = `🔎 Ditemukan *${matches.length}* customer dengan nama mirip:\n\n`;
         matches.forEach((c, i) => {
           text += `${i + 1}. ${c.name} (${c.phone}) - ${c.city}\n`;
@@ -161,7 +165,7 @@ class CustomerHandler {
         return;
       }
 
-      const c = matches[0];
+      const c = target;
       let time = '-';
       try {
         time = new Date(c.timestamp).toLocaleTimeString('id-ID', {
@@ -198,79 +202,187 @@ class CustomerHandler {
   async handleEditCustomer(msg, args) {
     try {
       const phone = extractPhoneNumber(msg.from);
-      const parts = (args || '').split('#').map((p) => p.trim());
-
-      if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) {
-        await msg.reply(
-          '⚠️ Format salah. Gunakan:\n' +
-          '/editcust <nama>#<field>#<nilai baru>\n\n' +
-          'Field: nama, hp, kota\n\n' +
-          'Contoh:\n' +
-          '/editcust Budi#kota#Jakarta Pusat\n' +
-          '/editcust Budi#hp#081234567890'
-        );
-        return;
-      }
-
-      const [nameQuery, fieldRaw, newValue] = parts;
-      const field = fieldRaw.toLowerCase();
-      const FIELD_MAP = {
-        nama: 'name',
-        name: 'name',
-        hp: 'phone',
-        no: 'phone',
-        nomor: 'phone',
-        telepon: 'phone',
-        kota: 'city',
-        city: 'city',
-      };
-      const dbField = FIELD_MAP[field];
-
-      if (!dbField) {
-        await msg.reply(
-          '⚠️ Field tidak dikenal. Gunakan: nama, hp, atau kota.\n\n' +
-          'Contoh: /editcust Budi#kota#Jakarta Pusat'
-        );
-        return;
-      }
-
+      const query = (args || '').trim();
       const customers = await storageService.getSpgCustomers(phone);
-      const matches = customers.filter((c) => c.name.toLowerCase().includes(nameQuery.toLowerCase()));
+
+      if (customers.length === 0) {
+        await msg.reply('📋 Belum ada pelanggan untuk diedit.\nDaftarkan dulu dengan /customer Nama#NoHp#Kota.');
+        return;
+      }
+
+      // Tanpa argumen → tampilkan semua customer bernomor (terbaru di atas)
+      if (!query) {
+        sessionService.setSession(phone, 'edit_customer_select', {});
+        await msg.reply(
+          this.buildCustomerMenu(customers, 'Customer mana yang mau diedit? Balas *nomornya*:')
+        );
+        return;
+      }
+
+      // Dengan nama → cari (exact match langsung dipilih)
+      const lower = query.toLowerCase();
+      const matches = customers.filter((c) => c.name.toLowerCase().includes(lower));
 
       if (matches.length === 0) {
-        await msg.reply(`🔍 Customer dengan nama *"${nameQuery}"* tidak ditemukan.`);
+        await msg.reply(
+          `🔍 Customer dengan nama *"${query}"* tidak ditemukan.\n\nKetik /editcust (tanpa nama) untuk melihat daftar semua customer.`
+        );
         return;
       }
 
-      if (matches.length > 1) {
-        let text = `🔎 Ditemukan *${matches.length}* customer dengan nama mirip:\n\n`;
-        matches.forEach((c, i) => {
-          text += `${i + 1}. ${c.name} (${c.phone}) - ${c.city}\n`;
-        });
-        text += '\nKetik nama yang lebih spesifik.';
-        await msg.reply(text);
+      const exact = matches.find((c) => c.name.toLowerCase() === lower);
+      if (exact) {
+        sessionService.setSession(phone, 'edit_customer_field', { customerId: exact.id });
+        await msg.reply(this.buildFieldMenu(exact));
         return;
       }
 
-      const customer = matches[0];
-      const labelMap = { name: 'Nama', phone: 'No. HP', city: 'Kota' };
-      const oldValue = customer[dbField] || '-';
-
-      const result = await storageService.updateCustomer(customer.id, { [dbField]: newValue });
-      if (!result || Number(result.changes) === 0) {
-        await msg.reply('❌ Data tidak berubah. Pastikan nilainya berbeda dari sebelumnya.');
-        return;
-      }
-
+      sessionService.setSession(phone, 'edit_customer_select', {});
       await msg.reply(
-        `✅ Data customer *${customer.name}* berhasil diubah!\n\n` +
-        `${labelMap[dbField]}: ${oldValue} → ${newValue}`
+        this.buildCustomerMenu(
+          matches,
+          `Ditemukan *${matches.length}* customer dengan nama mirip. Balas *nomornya*:`
+        )
       );
-      logger.info(`Customer updated: id=${customer.id} field=${dbField} by ${phone}`);
     } catch (error) {
-      logger.error('Error editing customer', error);
-      await msg.reply('❌ Gagal mengubah data customer.');
+      logger.error('Error starting customer edit', error);
+      await msg.reply('❌ Gagal memulai edit customer.');
     }
+  }
+
+  /** Balasan selama wizard edit: nomor customer → field → nilai baru → batal */
+  async handleEditCustomerReply(msg, body) {
+    try {
+      const phone = extractPhoneNumber(msg.from);
+      const lower = (body || '').trim().toLowerCase();
+
+      if (lower === 'batal' || lower === 'cancel' || lower === 'keluar') {
+        sessionService.clearSession(phone);
+        await msg.reply('❌ Dibatalkan. Tidak ada yang diubah.');
+        return;
+      }
+
+      const session = sessionService.getSession(phone);
+      if (!session || !session.state || !session.state.startsWith('edit_customer_')) {
+        await msg.reply('ℹ️ Sesi edit sudah habis. Ketik /editcust untuk mulai lagi.');
+        return;
+      }
+
+      if (session.state === 'edit_customer_select') {
+        const idx = parseInt(body, 10);
+        if (isNaN(idx) || idx < 1) {
+          await msg.reply('⚠️ Balas dengan *nomor* customer (contoh: 1).\n\nAtau ketik *batal* untuk keluar.');
+          return;
+        }
+        const customers = await storageService.getSpgCustomers(phone);
+        const customer = customers[idx - 1];
+        if (!customer) {
+          await msg.reply(`⚠️ Nomor ${idx} tidak ada di daftar. Balas nomor yang benar.\n\nAtau ketik *batal* untuk keluar.`);
+          return;
+        }
+        sessionService.setSession(phone, 'edit_customer_field', { customerId: customer.id });
+        await msg.reply(this.buildFieldMenu(customer));
+        return;
+      }
+
+      if (session.state === 'edit_customer_field') {
+        const fieldMap = { 1: 'name', 2: 'phone', 3: 'city' };
+        const field = fieldMap[body];
+        if (!field) {
+          await msg.reply('⚠️ Balas dengan nomor pilihan (1, 2, atau 3).\n\nAtau ketik *batal* untuk keluar.');
+          return;
+        }
+        const customer = await this.getCustomerById(phone, session.data.customerId);
+        if (!customer) {
+          sessionService.clearSession(phone);
+          await msg.reply('❌ Customer tidak ditemukan. Mulai lagi dengan /editcust.');
+          return;
+        }
+        sessionService.setSession(phone, 'edit_customer_value', { customerId: customer.id, field });
+        const labelMap = { name: 'Nama', phone: 'No. HP', city: 'Kota' };
+        await msg.reply(
+          `✏️ ${labelMap[field]} baru untuk *${customer.name}* (sekarang: ${customer[field] || '-'}):\n\n` +
+          'Ketik nilainya, atau *batal* untuk keluar.'
+        );
+        return;
+      }
+
+      if (session.state === 'edit_customer_value') {
+        const { customerId, field } = session.data;
+        const customer = await this.getCustomerById(phone, customerId);
+        if (!customer) {
+          sessionService.clearSession(phone);
+          await msg.reply('❌ Customer tidak ditemukan. Mulai lagi dengan /editcust.');
+          return;
+        }
+        const value = body.trim();
+        if (!value) {
+          await msg.reply('⚠️ Nilai tidak boleh kosong.\n\nKetik *batal* untuk keluar.');
+          return;
+        }
+        if (field === 'phone' && !(/^\d+$/.test(value) && value.replace(/\D/g, '').length >= 9)) {
+          await msg.reply('⚠️ No HP tidak valid. Gunakan angka saja (contoh: 087876629341).\n\nAtau ketik *batal* untuk keluar.');
+          return;
+        }
+        if (customer[field] === value) {
+          sessionService.clearSession(phone);
+          const labelMap = { name: 'Nama', phone: 'No. HP', city: 'Kota' };
+          await msg.reply(`ℹ️ ${labelMap[field]} customer *${customer.name}* memang sudah *${value}* — tidak ada yang diubah.`);
+          return;
+        }
+        const result = await storageService.updateCustomer(customerId, { [field]: value });
+        sessionService.clearSession(phone);
+        if (!result || Number(result.changes) === 0) {
+          await msg.reply('❌ Gagal mengubah data. Coba lagi dengan /editcust.');
+          return;
+        }
+        const labelMap = { name: 'Nama', phone: 'No. HP', city: 'Kota' };
+        const oldValue = customer[field] || '-';
+        await msg.reply(
+          `✅ Data customer *${customer.name}* berhasil diubah!\n\n${labelMap[field]}: ${oldValue} → ${value}`
+        );
+        logger.info(`Customer updated: id=${customerId} field=${field} by ${phone}`);
+        return;
+      }
+
+      await msg.reply('ℹ️ Sesi edit tidak dikenal. Ketik /editcust untuk mulai lagi.');
+    } catch (error) {
+      logger.error('Error handling customer edit reply', error);
+      await msg.reply('❌ Terjadi kesalahan saat edit. Ketik /editcust untuk mulai lagi.');
+    }
+  }
+
+  buildCustomerMenu(customers, header) {
+    const MAX_SHOW = 20;
+    let text = `📝 *Edit Customer*\n\n${header}\n\n`;
+    const shown = customers.slice(0, MAX_SHOW);
+    shown.forEach((c, i) => {
+      text += `${i + 1}. ${c.name} (${c.phone}) - ${c.city}\n`;
+    });
+    const rest = customers.length - shown.length;
+    if (rest > 0) {
+      text += `\n…dan ${rest} customer lainnya. Ketik /editcust <nama> untuk mencarinya.\n`;
+    }
+    text += '\nBalas *angka* untuk memilih, atau ketik *batal* untuk keluar.';
+    return text;
+  }
+
+  buildFieldMenu(customer) {
+    return (
+      `📝 Edit customer *${customer.name}*\n` +
+      `📱 No. HP: ${customer.phone}\n` +
+      `📍 Kota: ${customer.city || '-'}\n\n` +
+      'Mau edit apa? Balas *nomornya*:\n' +
+      '1. Nama\n' +
+      '2. No HP\n' +
+      '3. Kota\n\n' +
+      'Ketik *batal* untuk keluar.'
+    );
+  }
+
+  async getCustomerById(phone, id) {
+    const customers = await storageService.getSpgCustomers(phone);
+    return customers.find((c) => c.id === id) || null;
   }
 
   async handleCustomerCount(msg) {
