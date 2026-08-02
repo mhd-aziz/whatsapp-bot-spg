@@ -172,6 +172,60 @@ class CustomerHandler {
     }
   }
 
+  /** Foto baru saat edit wizard (state edit_customer_photo) */
+  async handleEditCustomerPhoto(msg) {
+    const phone = extractPhoneNumber(msg.from);
+    const session = sessionService.getSession(phone);
+
+    if (!session || session.state !== 'edit_customer_photo') return false;
+
+    if (Date.now() - session.data.timestamp > SESSION_TIMEOUT_MS) {
+      sessionService.clearSession(phone);
+      await msg.reply('⏰ Sesi edit foto sudah expired.\n\nSilakan ketik /editcust lagi.');
+      return true;
+    }
+
+    const customerId = session.data.customerId;
+    const customer = await this.getCustomerById(phone, customerId);
+    if (!customer) {
+      sessionService.clearSession(phone);
+      await msg.reply('❌ Customer tidak ditemukan. Mulai lagi dengan /editcust.');
+      return true;
+    }
+
+    try {
+      await msg.reply('⏳ Sedang memproses foto...');
+      const buffer = await msg.downloadMedia();
+
+      if (!buffer) {
+        await msg.reply('❌ Gagal mengunduh foto. Silakan kirim foto lagi.');
+        return true;
+      }
+
+      const validation = validateImageBuffer(buffer);
+      if (!validation.ok) {
+        await msg.reply(`❌ ${validation.error} Silakan kirim foto lain.`);
+        return true;
+      }
+
+      const photoFilename = `customer_${phone}_${Date.now()}.jpg`;
+      const savedPhoto = await storageService.savePhoto({ data: buffer.toString('base64') }, photoFilename);
+      if (!savedPhoto) {
+        await msg.reply('❌ Gagal menyimpan foto ke server. Coba kirim foto lagi.');
+        return true;
+      }
+      await storageService.updateCustomerPhoto(customerId, savedPhoto);
+      sessionService.clearSession(phone);
+      await msg.reply(`✅ Foto customer *${customer.name}* berhasil diganti!`);
+      logger.info(`Customer photo updated: id=${customerId} by ${phone}`);
+      return true;
+    } catch (error) {
+      logger.error('Error saving customer photo (edit)', error);
+      await msg.reply('❌ Terjadi kesalahan saat menyimpan foto.');
+      return true;
+    }
+  }
+
   async handleListCustomers(msg) {
     try {
       const phone = extractPhoneNumber(msg.from);
@@ -348,10 +402,27 @@ class CustomerHandler {
       }
 
       if (session.state === 'edit_customer_field') {
+        if (body === '4') {
+          const customer = await this.getCustomerById(phone, session.data.customerId);
+          if (!customer) {
+            sessionService.clearSession(phone);
+            await msg.reply('❌ Customer tidak ditemukan. Mulai lagi dengan /editcust.');
+            return;
+          }
+          sessionService.setSession(phone, 'edit_customer_photo', {
+            timestamp: Date.now(),
+            customerId: customer.id,
+          });
+          await msg.reply(
+            `📸 Kirim foto baru untuk *${customer.name}*.\n\n` +
+            'Ketik *lewat* untuk tetap pakai foto lama, atau *batal* untuk keluar.'
+          );
+          return;
+        }
         const fieldMap = { 1: 'name', 2: 'phone', 3: 'city' };
         const field = fieldMap[body];
         if (!field) {
-          await msg.reply('⚠️ Balas dengan nomor pilihan (1, 2, atau 3).\n\nAtau ketik *batal* untuk keluar.');
+          await msg.reply('⚠️ Balas dengan nomor pilihan (1, 2, 3, atau 4).\n\nAtau ketik *batal* untuk keluar.');
           return;
         }
         const customer = await this.getCustomerById(phone, session.data.customerId);
@@ -407,6 +478,24 @@ class CustomerHandler {
         return;
       }
 
+      if (session.state === 'edit_customer_photo') {
+        const customer = await this.getCustomerById(phone, session.data.customerId);
+        if (!customer) {
+          sessionService.clearSession(phone);
+          await msg.reply('❌ Customer tidak ditemukan. Mulai lagi dengan /editcust.');
+          return;
+        }
+        if (lower === 'lewat') {
+          sessionService.clearSession(phone);
+          await msg.reply(`ℹ️ Foto customer *${customer.name}* tetap memakai foto yang lama.`);
+          return;
+        }
+        await msg.reply(
+          '📸 Kirim foto baru, ketik *lewat* untuk tetap pakai foto lama, atau *batal* untuk keluar.'
+        );
+        return;
+      }
+
       await msg.reply('ℹ️ Sesi edit tidak dikenal. Ketik /editcust untuk mulai lagi.');
     } catch (error) {
       logger.error('Error handling customer edit reply', error);
@@ -430,14 +519,17 @@ class CustomerHandler {
   }
 
   buildFieldMenu(customer) {
+    const photoStatus = customer.photo ? 'Ada 📸' : 'Tidak ada';
     return (
       `📝 Edit customer *${customer.name}*\n` +
       `📱 No. HP: ${customer.phone}\n` +
-      `📍 Kota: ${customer.city || '-'}\n\n` +
+      `📍 Kota: ${customer.city || '-'}\n` +
+      `📸 Foto: ${photoStatus}\n\n` +
       'Mau edit apa? Balas *nomornya*:\n' +
       '1. Nama\n' +
       '2. No HP\n' +
-      '3. Kota\n\n' +
+      '3. Kota\n' +
+      '4. Foto\n\n' +
       'Ketik *batal* untuk keluar.'
     );
   }

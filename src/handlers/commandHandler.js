@@ -32,6 +32,7 @@ const WIZARD_LABELS = {
   edit_customer_select: 'edit customer',
   edit_customer_field: 'edit customer',
   edit_customer_value: 'edit customer',
+  edit_customer_photo: 'edit customer (foto)',
 };
 
 class CommandHandler {
@@ -44,6 +45,8 @@ class CommandHandler {
         if (session && session.state) {
           if (session.state === 'waiting_photo_customer') {
             await customerHandler.handleCustomerPhoto(msg);
+          } else if (session.state === 'edit_customer_photo') {
+            await customerHandler.handleEditCustomerPhoto(msg);
           } else if (session.state === 'waiting_photo_checkin' || session.state === 'waiting_photo_checkout') {
             await attendanceHandler.handlePhotoMessage(msg);
           } else {
@@ -95,8 +98,11 @@ class CommandHandler {
           if (isCancel) {
             sessionService.clearSession(phone);
             await msg.reply('❌ Dibatalkan. Pelanggan sudah tersimpan tanpa foto.');
+          } else if (lowerBody === 'lewat') {
+            sessionService.clearSession(phone);
+            await msg.reply('ℹ️ Pelanggan tersimpan tanpa foto.');
           } else {
-            await msg.reply('📸 Kirim foto customer/bukti, atau ketik *batal* untuk membatalkan.');
+            await msg.reply('📸 Kirim foto customer/bukti, ketik *lewat* jika tidak ada foto, atau *batal* untuk membatalkan.');
           }
           return;
         }

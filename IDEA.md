@@ -68,7 +68,7 @@ whatsapp-bot-spg/
 | `/customer` | Registrasi customer baru (wizard: nama → HP → kota) — lalu kirim foto bukti |
 | `/list` | Daftar customer (teks, tanpa foto) |
 | `/detailcust <nama>` | Detail lengkap 1 customer + foto |
-| `/editcust` | Wizard edit: menu bernomor → pilih customer → pilih field → ketik nilai (batal untuk keluar) |
+| `/editcust` | Wizard edit: menu bernomor → pilih customer → pilih field (nama/HP/kota/**foto**) → ketik nilai / kirim foto (batal untuk keluar, `lewat` untuk skip foto) |
 | `/editcust <nama>` | Shortcut: langsung ke pilihan field untuk customer itu |
 | `/help`, `/ping` | Bantuan, cek aktif |
 
