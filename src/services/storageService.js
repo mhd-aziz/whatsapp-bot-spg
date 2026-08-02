@@ -67,6 +67,10 @@ class StorageService {
     return dataService.updateCustomer(id, updates);
   }
 
+  deleteCustomer(id) {
+    return dataService.deleteCustomer(id);
+  }
+
   // ---------- Users ----------
 
   getAllUsers() {
@@ -94,6 +98,17 @@ class StorageService {
 
   getPhotoPath(filename) {
     return path.join(config.paths.photos, filename);
+  }
+
+  /** Hapus file foto dari disk (best-effort: gagal hanya di-log, tidak throw) */
+  async deletePhotoFile(filename) {
+    if (!filename) return;
+    try {
+      await fs.unlink(path.join(config.paths.photos, filename));
+      logger.debug(`Photo deleted: ${filename}`);
+    } catch (error) {
+      logger.warn(`Failed to delete photo file: ${filename}`, error.message);
+    }
   }
 }
 

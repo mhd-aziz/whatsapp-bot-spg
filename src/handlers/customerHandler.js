@@ -132,9 +132,9 @@ class CustomerHandler {
     }
 
     const customerId = session.data.customerId;
-    sessionService.clearSession(phone);
 
     if (!customerId) {
+      sessionService.clearSession(phone);
       logger.warn(`Customer photo session without customerId: ${phone}`);
       await msg.reply('❌ Data customer tidak ditemukan. Silakan daftar ulang dengan /customer.');
       return true;
@@ -162,6 +162,7 @@ class CustomerHandler {
         return true;
       }
       await storageService.updateCustomerPhoto(customerId, savedPhoto);
+      sessionService.clearSession(phone);
 
       await msg.reply('✅ Foto customer berhasil disimpan!');
       return true;
@@ -223,6 +224,142 @@ class CustomerHandler {
       logger.error('Error saving customer photo (edit)', error);
       await msg.reply('❌ Terjadi kesalahan saat menyimpan foto.');
       return true;
+    }
+  }
+
+  /** Mulai wizard hapus customer. Args opsional = nama customer. */
+  async handleDeleteCustomer(msg, args) {
+    try {
+      const phone = extractPhoneNumber(msg.from);
+      const query = (args || '').trim();
+      const customers = await storageService.getSpgCustomers(phone);
+
+      if (customers.length === 0) {
+        await msg.reply('📋 Belum ada pelanggan untuk dihapus.\nDaftarkan dulu dengan /customer.');
+        return;
+      }
+
+      // Tanpa argumen → tampilkan semua customer bernomor (terbaru di atas)
+      if (!query) {
+        sessionService.setSession(phone, 'delete_customer_select', {});
+        await msg.reply(
+          this.buildCustomerMenu(customers, 'Customer mana yang mau dihapus? Balas *nomornya*:')
+        );
+        return;
+      }
+
+      // Dengan nama → cari (exact match langsung ke konfirmasi)
+      const lower = query.toLowerCase();
+      const matches = customers.filter((c) => c.name.toLowerCase().includes(lower));
+
+      if (matches.length === 0) {
+        await msg.reply(
+          `🔍 Customer dengan nama *"${query}"* tidak ditemukan.\n\n` +
+          'Ketik /hapuscust (tanpa nama) untuk melihat daftar semua customer.'
+        );
+        return;
+      }
+
+      const exact = matches.find((c) => c.name.toLowerCase() === lower);
+      if (exact) {
+        await this.promptDeleteConfirm(msg, phone, exact);
+        return;
+      }
+
+      sessionService.setSession(phone, 'delete_customer_select', {});
+      await msg.reply(
+        this.buildCustomerMenu(
+          matches,
+          `Ditemukan *${matches.length}* customer dengan nama mirip. Balas *nomornya*:`
+        )
+      );
+    } catch (error) {
+      logger.error('Error starting customer delete', error);
+      await msg.reply('❌ Gagal memulai hapus customer.');
+    }
+  }
+
+  /** Tampilkan konfirmasi hapus (anti human error) */
+  async promptDeleteConfirm(msg, phone, customer) {
+    const photoStatus = customer.photo ? 'Ada 📸' : 'Tidak ada';
+    sessionService.setSession(phone, 'delete_customer_confirm', { customerId: customer.id });
+    await msg.reply(
+      `⚠️ *Yakin hapus customer ini?*\n\n` +
+      `👤 Nama: ${customer.name}\n` +
+      `📱 No. HP: ${customer.phone}\n` +
+      `📍 Kota: ${customer.city || '-'}\n` +
+      `📸 Foto: ${photoStatus}\n\n` +
+      'Data dan foto akan dihapus *permanen* (tidak bisa dikembalikan).\n\n' +
+      'Ketik *ya* untuk menghapus, atau *batal* untuk membatalkan.'
+    );
+  }
+
+  /** Balasan selama wizard hapus: pilih nomor → konfirmasi ya/batal */
+  async handleDeleteCustomerReply(msg, body) {
+    try {
+      const phone = extractPhoneNumber(msg.from);
+      const lower = (body || '').trim().toLowerCase();
+
+      if (lower === 'batal' || lower === 'cancel' || lower === 'keluar') {
+        sessionService.clearSession(phone);
+        await msg.reply('❌ Dibatalkan. Tidak ada yang dihapus.');
+        return;
+      }
+
+      const session = sessionService.getSession(phone);
+      if (!session || !session.state || !session.state.startsWith('delete_customer_')) {
+        await msg.reply('ℹ️ Sesi hapus sudah habis. Ketik /hapuscust untuk mulai lagi.');
+        return;
+      }
+
+      if (session.state === 'delete_customer_select') {
+        const idx = parseInt(body, 10);
+        if (isNaN(idx) || idx < 1) {
+          await msg.reply('⚠️ Balas dengan *nomor* customer (contoh: 1).\n\nAtau ketik *batal* untuk keluar.');
+          return;
+        }
+        const customers = await storageService.getSpgCustomers(phone);
+        const customer = customers[idx - 1];
+        if (!customer) {
+          await msg.reply(`⚠️ Nomor ${idx} tidak ada di daftar. Balas nomor yang benar.\n\nAtau ketik *batal* untuk keluar.`);
+          return;
+        }
+        await this.promptDeleteConfirm(msg, phone, customer);
+        return;
+      }
+
+      if (session.state === 'delete_customer_confirm') {
+        const { customerId } = session.data;
+        if (lower !== 'ya') {
+          await msg.reply('⚠️ Ketik *ya* untuk menghapus, atau *batal* untuk membatalkan.');
+          return;
+        }
+        const customer = await this.getCustomerById(phone, customerId);
+        if (!customer) {
+          sessionService.clearSession(phone);
+          await msg.reply('❌ Customer tidak ditemukan. Mungkin sudah terhapus.');
+          return;
+        }
+        const photoFile = customer.photo;
+        const deleted = await storageService.deleteCustomer(customerId);
+        sessionService.clearSession(phone);
+        if (!deleted) {
+          await msg.reply('❌ Gagal menghapus customer. Coba lagi dengan /hapuscust.');
+          return;
+        }
+        // Hapus file foto dari disk (best-effort)
+        if (photoFile) {
+          await storageService.deletePhotoFile(photoFile);
+        }
+        await msg.reply(`✅ Customer *${customer.name}* beserta fotonya berhasil dihapus!`);
+        logger.info(`Customer deleted: id=${customerId} name=${customer.name} by ${phone}`);
+        return;
+      }
+
+      await msg.reply('ℹ️ Sesi hapus tidak dikenal. Ketik /hapuscust untuk mulai lagi.');
+    } catch (error) {
+      logger.error('Error handling customer delete reply', error);
+      await msg.reply('❌ Terjadi kesalahan saat hapus. Ketik /hapuscust untuk mulai lagi.');
     }
   }
 

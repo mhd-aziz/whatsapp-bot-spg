@@ -115,6 +115,11 @@ class DataService {
     return { changes: Number(result.changes) };
   }
 
+  deleteCustomer(id) {
+    const result = db.run('DELETE FROM customers WHERE id = ?', [id]);
+    return Number(result.changes) > 0;
+  }
+
   // ---------- Stats & Users ----------
 
   getDailyStats(date = getCurrentDate()) {

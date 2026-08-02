@@ -77,6 +77,7 @@ Scan QR code yang muncul di terminal dengan aplikasi WhatsApp di smartphone Anda
 | `/list` | Daftar customer kamu |
 | `/detailcust <nama>` | Detail lengkap customer + foto |
 | `/editcust` | Edit data customer (menu bernomor — nama, HP, kota, **foto**; bisa juga `/editcust <nama>`) |
+| `/hapuscust` | Hapus customer (menu bernomor + konfirmasi *ya*/*batal*; data & foto dihapus permanen) |
 | `/editcust <nama>` | Edit customer langsung (lompat ke pilihan field) |
 | `/total` | Total customer kamu |
 | `/help` | Daftar perintah |

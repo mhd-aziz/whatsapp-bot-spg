@@ -20,7 +20,8 @@ const ACTIVE_WIZARD = (state) =>
   state === 'waiting_photo_customer' ||
   state === 'waiting_photo_checkin' ||
   state === 'waiting_photo_checkout' ||
-  state.startsWith('edit_customer_');
+  state.startsWith('edit_customer_') ||
+  state.startsWith('delete_customer_');
 
 const WIZARD_LABELS = {
   customer_reg_name: 'tambah customer',
@@ -33,6 +34,8 @@ const WIZARD_LABELS = {
   edit_customer_field: 'edit customer',
   edit_customer_value: 'edit customer',
   edit_customer_photo: 'edit customer (foto)',
+  delete_customer_select: 'hapus customer',
+  delete_customer_confirm: 'hapus customer (konfirmasi)',
 };
 
 class CommandHandler {
@@ -92,6 +95,10 @@ class CommandHandler {
         }
         if (session.state.startsWith('edit_customer_')) {
           await customerHandler.handleEditCustomerReply(msg, body);
+          return;
+        }
+        if (session.state.startsWith('delete_customer_')) {
+          await customerHandler.handleDeleteCustomerReply(msg, body);
           return;
         }
         if (session.state === 'waiting_photo_customer') {
@@ -167,6 +174,9 @@ class CommandHandler {
         break;
       case '/editcust':
         await customerHandler.handleEditCustomer(msg, args);
+        break;
+      case '/hapuscust':
+        await customerHandler.handleDeleteCustomer(msg, args);
         break;
       case '/total':
         await customerHandler.handleCustomerCount(msg);
@@ -248,6 +258,7 @@ class CommandHandler {
       '/list - Daftar customer\n' +
       '/detailcust <nama> - Detail lengkap customer + foto\n' +
       '/editcust - Edit data customer (menu bernomor, bisa juga /editcust <nama>)\n' +
+      '/hapuscust - Hapus customer (dengan konfirmasi, foto ikut terhapus)\n' +
       '/total - Total customer\n\n' +
       '*Lainnya:*\n' +
       '/help - Bantuan\n' +
