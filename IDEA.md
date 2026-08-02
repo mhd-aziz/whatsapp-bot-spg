@@ -66,7 +66,8 @@ whatsapp-bot-spg/
 | `/pulang` → kirim foto | Absen pulang (anti duplikat per hari) |
 | `/status` | Status absensi hari ini + foto masuk/pulang |
 | `/customer` / pesan `Nama#HP#Kota` | Registrasi customer — lalu kirim foto bukti |
-| `/list`, `/total` | Daftar (dengan foto) & jumlah customer pribadi |
+| `/list` | Daftar customer (teks, tanpa foto) |
+| `/detailcust <nama>` | Detail lengkap 1 customer + foto |
 | `/help`, `/ping` | Bantuan, cek aktif |
 
 ### Admin (hanya nomor di `SUPERVISOR_PHONES`)

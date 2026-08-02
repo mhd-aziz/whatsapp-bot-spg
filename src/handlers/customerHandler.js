@@ -7,10 +7,9 @@ const fs = require('fs').promises;
 const storageService = require('../services/storageService');
 const sessionService = require('../services/sessionService');
 const logger = require('../utils/logger');
-const { extractPhoneNumber, validateImageBuffer } = require('../utils/helpers');
+const { extractPhoneNumber, validateImageBuffer, formatIndonesianDate } = require('../utils/helpers');
 
 const SESSION_TIMEOUT_MS = 5 * 60 * 1000;
-const MAX_CUSTOMER_PHOTOS_PER_LIST = 10; // cap to avoid flooding chat on large lists
 
 class CustomerHandler {
   async handleCustomerHelp(msg) {
@@ -111,7 +110,7 @@ class CustomerHandler {
     }
   }
 
-  async handleListCustomers(msg, sock) {
+  async handleListCustomers(msg) {
     try {
       const phone = extractPhoneNumber(msg.from);
       const customers = await storageService.getSpgCustomers(phone);
@@ -123,30 +122,76 @@ class CustomerHandler {
 
       let list = '📋 *Daftar Pelangganmu:*\n\n';
       customers.forEach((c, i) => {
-        list += `${i + 1}. ${c.name} (${c.phone}) - ${c.city}${c.photo ? ' 📷' : ''}\n`;
+        list += `${i + 1}. ${c.name} (${c.phone}) - ${c.city}\n`;
       });
 
       await msg.reply(list);
+    } catch (error) {
+      logger.error('Error listing customers', error);
+      await msg.reply('❌ Gagal mengambil daftar pelanggan.');
+    }
+  }
 
-      // Send each customer's photo as an attachment (capped to avoid flooding)
-      let sent = 0;
-      for (const c of customers) {
-        if (!c.photo) continue;
-        if (sent >= MAX_CUSTOMER_PHOTOS_PER_LIST) {
-          await msg.reply(`…dan ${customers.filter((x) => x.photo).length - sent} foto lainnya.`);
-          break;
-        }
+  async handleCustomerDetail(msg, sock, args) {
+    try {
+      const phone = extractPhoneNumber(msg.from);
+      const rawQuery = (args || '').trim();
+      const query = rawQuery.toLowerCase();
+
+      if (!query) {
+        await msg.reply('⚠️ Gunakan: /detailcust <nama>\n\nContoh: /detailcust Budi');
+        return;
+      }
+
+      const customers = await storageService.getSpgCustomers(phone);
+      const matches = customers.filter((c) => c.name.toLowerCase().includes(query));
+
+      if (matches.length === 0) {
+        await msg.reply(`🔍 Customer dengan nama *"${rawQuery}"* tidak ditemukan.`);
+        return;
+      }
+
+      if (matches.length > 1) {
+        let text = `🔎 Ditemukan *${matches.length}* customer dengan nama mirip:\n\n`;
+        matches.forEach((c, i) => {
+          text += `${i + 1}. ${c.name} (${c.phone}) - ${c.city}\n`;
+        });
+        text += `\nKetik nama yang lebih spesifik, contoh: /detailcust ${matches[0].name}`;
+        await msg.reply(text);
+        return;
+      }
+
+      const c = matches[0];
+      let time = '-';
+      try {
+        time = new Date(c.timestamp).toLocaleTimeString('id-ID', {
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      } catch {
+        // keep '-'
+      }
+
+      await msg.reply(
+        `📋 *Detail Customer*\n\n` +
+        `👤 Nama: ${c.name}\n` +
+        `📱 No. HP: ${c.phone}\n` +
+        `📍 Kota: ${c.city || '-'}\n` +
+        `📅 Tanggal: ${formatIndonesianDate(c.date)}\n` +
+        `⏰ Jam: ${time}`
+      );
+
+      if (c.photo) {
         try {
           const image = await fs.readFile(storageService.getPhotoPath(c.photo));
-          await sock.sendMessage(msg.from, { image, caption: `📸 ${c.name} (${c.phone})` });
-          sent += 1;
+          await sock.sendMessage(msg.from, { image, caption: `📸 Foto ${c.name}` });
         } catch (error) {
           logger.warn(`Customer photo not found: ${c.photo}`, error);
         }
       }
     } catch (error) {
-      logger.error('Error listing customers', error);
-      await msg.reply('❌ Gagal mengambil daftar pelanggan.');
+      logger.error('Error getting customer detail', error);
+      await msg.reply('❌ Gagal mengambil detail customer.');
     }
   }
 

@@ -88,7 +88,10 @@ class CommandHandler {
         else await customerHandler.handleCustomerHelp(msg);
         break;
       case '/list':
-        await customerHandler.handleListCustomers(msg, sock);
+        await customerHandler.handleListCustomers(msg);
+        break;
+      case '/detailcust':
+        await customerHandler.handleCustomerDetail(msg, sock, args);
         break;
       case '/total':
         await customerHandler.handleCustomerCount(msg);
@@ -167,7 +170,8 @@ class CommandHandler {
       '/status - Cek status + foto masuk/pulang\n\n' +
       '*Customer:*\n' +
       '/customer - Daftarkan customer baru + foto bukti\n' +
-      '/list - Daftar customer + foto\n' +
+      '/list - Daftar customer\n' +
+      '/detailcust <nama> - Detail lengkap customer + foto\n' +
       '/total - Total customer\n\n' +
       '*Lainnya:*\n' +
       '/help - Bantuan\n' +
