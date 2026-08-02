@@ -120,6 +120,19 @@ class DataService {
     return Number(result.changes) > 0;
   }
 
+  /** Data terkait sebuah customer: absensi & customer lain dengan nomor HP sama */
+  countCustomerRelated(phone, excludeId) {
+    const attendance = db.get(
+      'SELECT COUNT(*) AS total FROM attendance WHERE phone = ?',
+      [phone]
+    ).total;
+    const duplicates = db.get(
+      'SELECT COUNT(*) AS total FROM customers WHERE phone = ? AND id != ?',
+      [phone, excludeId]
+    ).total;
+    return { attendance, duplicates };
+  }
+
   // ---------- Stats & Users ----------
 
   getDailyStats(date = getCurrentDate()) {

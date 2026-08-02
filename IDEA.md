@@ -70,7 +70,7 @@ whatsapp-bot-spg/
 | `/detailcust <nama>` | Detail lengkap 1 customer + foto |
 | `/editcust` | Wizard edit: menu bernomor → pilih customer → pilih field (nama/HP/kota/**foto**) → ketik nilai / kirim foto (batal untuk keluar, `lewat` untuk skip foto) |
 | `/editcust <nama>` | Shortcut: langsung ke pilihan field untuk customer itu |
-| `/hapuscust` | Wizard hapus: menu bernomor → pilih customer → **konfirmasi ya/batal** → data + foto dihapus permanen |
+| `/hapuscust` | Wizard hapus: menu bernomor → pilih customer → **konfirmasi ya/batal** → data + foto dihapus permanen. Jika ada data terkait (absensi/duplikat nomor) → perlu ketik `ya hapus` |
 | `/help`, `/ping` | Bantuan, cek aktif |
 
 ### Admin (hanya nomor di `SUPERVISOR_PHONES`)

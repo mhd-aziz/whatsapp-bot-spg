@@ -71,6 +71,10 @@ class StorageService {
     return dataService.deleteCustomer(id);
   }
 
+  countCustomerRelated(phone, excludeId) {
+    return dataService.countCustomerRelated(phone, excludeId);
+  }
+
   // ---------- Users ----------
 
   getAllUsers() {

@@ -219,6 +219,10 @@ class CustomerHandler {
       sessionService.clearSession(phone);
       await msg.reply(`✅ Foto customer *${customer.name}* berhasil diganti!`);
       logger.info(`Customer photo updated: id=${customerId} by ${phone}`);
+      // Hapus foto lama dari disk agar file tidak menumpuk (best-effort)
+      if (customer.photo && customer.photo !== savedPhoto) {
+        await storageService.deletePhotoFile(customer.photo);
+      }
       return true;
     } catch (error) {
       logger.error('Error saving customer photo (edit)', error);
@@ -279,18 +283,37 @@ class CustomerHandler {
     }
   }
 
-  /** Tampilkan konfirmasi hapus (anti human error) */
+  /** Tampilkan konfirmasi hapus (anti human error). Jika ada data terkait → konfirmasi ulang. */
   async promptDeleteConfirm(msg, phone, customer) {
     const photoStatus = customer.photo ? 'Ada 📸' : 'Tidak ada';
-    sessionService.setSession(phone, 'delete_customer_confirm', { customerId: customer.id });
+    const related = await storageService.countCustomerRelated(customer.phone, customer.id);
+    const hasRelated = related.attendance > 0 || related.duplicates > 0;
+
+    let relatedWarning = '';
+    let confirmWord = 'ya';
+    if (hasRelated) {
+      const parts = [];
+      if (related.attendance > 0) parts.push(`${related.attendance} catatan absensi`);
+      if (related.duplicates > 0) parts.push(`${related.duplicates} customer lain dengan nomor sama`);
+      relatedWarning =
+        `\n⚠️ *Data terkait ditemukan:* ${parts.join(' dan ')}.\n` +
+        'Semua tetap dipertahankan, HANYA customer ini yang dihapus.\n';
+      confirmWord = 'ya hapus';
+    }
+
+    sessionService.setSession(phone, 'delete_customer_confirm', {
+      customerId: customer.id,
+      needsDoubleConfirm: hasRelated,
+    });
     await msg.reply(
       `⚠️ *Yakin hapus customer ini?*\n\n` +
       `👤 Nama: ${customer.name}\n` +
       `📱 No. HP: ${customer.phone}\n` +
       `📍 Kota: ${customer.city || '-'}\n` +
-      `📸 Foto: ${photoStatus}\n\n` +
-      'Data dan foto akan dihapus *permanen* (tidak bisa dikembalikan).\n\n' +
-      'Ketik *ya* untuk menghapus, atau *batal* untuk membatalkan.'
+      `📸 Foto: ${photoStatus}\n` +
+      relatedWarning +
+      '\nData dan foto akan dihapus *permanen* (tidak bisa dikembalikan).\n\n' +
+      `Ketik *${confirmWord}* untuk menghapus, atau *batal* untuk membatalkan.`
     );
   }
 
@@ -329,9 +352,10 @@ class CustomerHandler {
       }
 
       if (session.state === 'delete_customer_confirm') {
-        const { customerId } = session.data;
-        if (lower !== 'ya') {
-          await msg.reply('⚠️ Ketik *ya* untuk menghapus, atau *batal* untuk membatalkan.');
+        const { customerId, needsDoubleConfirm } = session.data;
+        const confirmWord = needsDoubleConfirm ? 'ya hapus' : 'ya';
+        if (lower !== confirmWord) {
+          await msg.reply(`⚠️ Ketik *${confirmWord}* untuk menghapus, atau *batal* untuk membatalkan.`);
           return;
         }
         const customer = await this.getCustomerById(phone, customerId);
