@@ -4,7 +4,7 @@
  */
 
 const db = require('./databaseService');
-const { getCurrentDate, getTimestamp } = require('../utils/helpers');
+const { getCurrentDate, getTimestamp, normalizePhoneNumber } = require('../utils/helpers');
 const logger = require('../utils/logger');
 
 class DataService {
@@ -120,16 +120,20 @@ class DataService {
     return Number(result.changes) > 0;
   }
 
-  /** Data terkait sebuah customer: absensi & customer lain dengan nomor HP sama */
+  /** Data terkait sebuah customer: absensi & customer lain dengan nomor sama (cek format 08xx & 62xx) */
   countCustomerRelated(phone, excludeId) {
-    const attendance = db.get(
-      'SELECT COUNT(*) AS total FROM attendance WHERE phone = ?',
-      [phone]
-    ).total;
-    const duplicates = db.get(
-      'SELECT COUNT(*) AS total FROM customers WHERE phone = ? AND id != ?',
-      [phone, excludeId]
-    ).total;
+    const norm = normalizePhoneNumber(phone);
+    const variants = [phone, norm].filter((v, i, a) => v && a.indexOf(v) === i);
+    const placeholders = variants.map(() => '?').join(',');
+    const attendance = Number(
+      db.get('SELECT COUNT(*) AS total FROM attendance WHERE phone = ?', [norm]).total
+    ) || 0;
+    const duplicates = Number(
+      db.get(
+        `SELECT COUNT(*) AS total FROM customers WHERE id != ? AND phone IN (${placeholders})`,
+        [excludeId, ...variants]
+      ).total
+    ) || 0;
     return { attendance, duplicates };
   }
 

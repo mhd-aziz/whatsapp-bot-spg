@@ -173,7 +173,15 @@ class AdminHandler {
 
   async handleDeleteAttendance(msg, args) {
     try {
-      const phone = normalizePhoneNumber(args) || extractPhoneNumber(msg.from);
+      const hasArgs = (args || '').trim().length > 0;
+      const phone = hasArgs ? normalizePhoneNumber(args) : extractPhoneNumber(msg.from);
+      if (!phone) {
+        await msg.reply(
+          '⚠️ Nomor tidak valid. Gunakan: /hapus_absen <nomor>\n' +
+          'Contoh: /hapus_absen 087876629341'
+        );
+        return;
+      }
       const date = getCurrentDate();
       const deleted = await storageService.deleteAttendance(phone, date);
       await msg.reply(

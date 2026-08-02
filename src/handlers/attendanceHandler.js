@@ -105,6 +105,7 @@ class AttendanceHandler {
     const session = sessionService.getSession(phone);
 
     if (!session || !session.state) return false;
+    if (session.state !== 'waiting_photo_checkin' && session.state !== 'waiting_photo_checkout') return false;
 
     if (Date.now() - session.data.timestamp > SESSION_TIMEOUT_MS) {
       sessionService.clearSession(phone);
@@ -118,14 +119,13 @@ class AttendanceHandler {
     }
 
     const attendanceType = session.state === 'waiting_photo_checkin' ? 'masuk' : 'pulang';
-    sessionService.clearSession(phone);
 
     try {
       await msg.reply('⏳ Sedang memproses absensi...');
       const buffer = await msg.downloadMedia();
 
       if (!buffer) {
-        await msg.reply('❌ Gagal mengunduh foto. Silakan coba lagi dengan /' + attendanceType);
+        await msg.reply('❌ Gagal mengunduh foto. Silakan kirim foto lagi.');
         return true;
       }
 
@@ -138,7 +138,7 @@ class AttendanceHandler {
       const photoFilename = `${phone}_${Date.now()}.jpg`;
       const savedPhoto = await storageService.savePhoto({ data: buffer.toString('base64') }, photoFilename);
       if (!savedPhoto) {
-        await msg.reply('❌ Gagal menyimpan foto ke server. Coba lagi dengan /' + attendanceType);
+        await msg.reply('❌ Gagal menyimpan foto ke server. Coba kirim foto lagi.');
         return true;
       }
 
@@ -149,6 +149,7 @@ class AttendanceHandler {
         latitude: null,
         longitude: null,
       });
+      sessionService.clearSession(phone);
 
       const emoji = attendanceType === 'masuk' ? '✅' : '🏠';
       const label = attendanceType === 'masuk' ? 'MASUK' : 'PULANG';
