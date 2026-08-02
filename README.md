@@ -5,232 +5,142 @@ Bot WhatsApp untuk monitoring SPG (Sales Promotion Girl) dan SPB (Sales Promotio
 ## ✨ Fitur
 
 ### 📍 Absensi
-- ✅ Absen masuk dengan foto selfie
-- ✅ Absen pulang dengan foto selfie
-- ✅ Cek status absensi harian
-- ✅ Penyimpanan lokasi GPS (opsional)
+- ✅ Absen masuk dengan foto selfie (`/masuk`)
+- ✅ Absen pulang dengan foto selfie (`/pulang`)
+- ✅ Cek status absensi harian (`/status`)
+- ✅ Anti duplikasi: tidak bisa absen masuk/pulang dua kali dalam sehari
 
 ### 👥 Customer Management
-- ✅ Registrasi customer baru (nama, HP, kota)
-- ✅ Lihat daftar customer
-- ✅ Statistik customer harian
+- ✅ Registrasi customer baru — format `Nama#NomorHP#Kota`
+- ✅ Lihat daftar customer (`/list`)
+- ✅ Statistik customer harian (`/total`)
 
 ### 👑 Admin/Supervisor
-- ✅ Laporan statistik harian
-- ✅ Rekap absensi per tanggal
-- ✅ Broadcast pesan ke semua SPG/SPB
-- ✅ Monitoring real-time
+- ✅ Laporan statistik harian (`/stats`)
+- ✅ Rekap absensi per tanggal (`/rekap`)
+- ✅ Broadcast pesan ke semua SPG/SPB (`/broadcast`)
+- ✅ Hapus data absensi user (`/hapus_absen`)
+- 🔒 Perintah admin **hanya bisa dipakai nomor supervisor** yang terdaftar
 
 ## 🚀 Instalasi
 
-### 1. Clone Repository
-
-```bash
-git clone https://github.com/mhd-aziz/whatsapp-bot-spg.git
-cd whatsapp-bot-spg
-```
-
-### 2. Install Dependencies
+### 1. Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 3. Konfigurasi Environment
+> Membutuhkan **Node.js >= 22.5** (memakai `node:sqlite` bawaan, tanpa database eksternal).
 
-Salin file `.env.example` menjadi `.env`:
+### 2. Konfigurasi Environment
 
 ```bash
 cp .env.example .env
 ```
 
-Edit file `.env` dan sesuaikan konfigurasi:
+Isi `.env`:
 
 ```env
-# Wajib diisi
-SUPERVISOR_PHONE=628123456789  # Nomor WhatsApp admin/supervisor
-
-# Opsional (jika menggunakan Supabase)
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
-
-# Opsional (jika menggunakan Google Sheets)
-GOOGLE_SHEETS_ID=your-spreadsheet-id
+# Nomor WhatsApp supervisor — bisa lebih dari satu, pisahkan dengan koma.
+# Format internasional tanpa "+", contoh:
+SUPERVISOR_PHONES=628123456789,628987654321
 ```
 
-### 4. Jalankan Bot
+### 3. Jalankan Bot
 
-**Mode Production:**
 ```bash
 npm start
 ```
 
-**Mode Development (dengan auto-reload):**
-```bash
-npm run dev
-```
+### 4. Scan QR Code
 
-### 5. Scan QR Code
-
-Setelah bot berjalan, scan QR code yang muncul di terminal dengan aplikasi WhatsApp di smartphone Anda.
+Scan QR code yang muncul di terminal dengan aplikasi WhatsApp di smartphone Anda (nomor yang dipakai untuk bot).
 
 ## 📱 Cara Penggunaan
 
 ### Untuk SPG/SPB
 
-#### Absensi Masuk
-1. Buka chat dengan bot
-2. Kirim perintah `/masuk`
-3. Lampirkan foto selfie di lokasi
-4. Bot akan konfirmasi absensi masuk
+| Perintah | Fungsi |
+|----------|--------|
+| `/masuk` | Absen masuk — lanjut kirim foto selfie di lokasi |
+| `/pulang` | Absen pulang — lanjut kirim foto selfie di lokasi |
+| `/status` | Cek status absensi hari ini |
+| `/customer` | Registrasi customer baru (format `Nama#HP#Kota`) |
+| `/list` | Daftar customer yang kamu daftarkan |
+| `/total` | Total customer kamu |
+| `/help` | Daftar perintah |
+| `/ping` | Cek bot aktif |
 
-#### Absensi Pulang
-1. Kirim perintah `/pulang`
-2. Lampirkan foto selfie di lokasi
-3. Bot akan konfirmasi absensi pulang
+**Registrasi customer** juga bisa langsung kirim pesan tanpa command:
 
-#### Cek Status Absensi
-```
-/status
-```
-
-#### Registrasi Customer Baru
-Format: `nama#hp#kota`
-
-Contoh:
 ```
 Budi Santoso#081234567890#Jakarta
 ```
 
-Atau gunakan command:
-```
-/customer Budi Santoso#081234567890#Jakarta
-```
-
-#### Lihat Daftar Customer
-```
-/list
-```
-
-#### Total Customer
-```
-/total
-```
-
 ### Untuk Admin/Supervisor
 
-#### Statistik Harian
-```
-/stats
-```
+| Perintah | Fungsi |
+|----------|--------|
+| `/stats` | Statistik hari ini |
+| `/rekap` | Rekap absensi hari ini |
+| `/rekap kemarin` | Rekap kemarin |
+| `/rekap 2024-01-15` | Rekap tanggal tertentu (YYYY-MM-DD) |
+| `/rekap 15-01-2024` | Rekap tanggal tertentu (DD-MM-YYYY) |
+| `/broadcast Pesan...` | Kirim pesan ke semua SPG/SPB |
+| `/hapus_absen 628123456789` | Hapus absen user hari ini |
+| `/admin` | Menu admin |
 
-#### Rekap Absensi
-```
-/rekap                  # Hari ini
-/rekap kemarin          # Kemarin
-/rekap 2024-01-15       # Tanggal tertentu (YYYY-MM-DD)
-/rekap 15-01-2024       # Tanggal tertentu (DD-MM-YYYY)
-```
+## 💾 Penyimpanan Data
 
-#### Broadcast Pesan
-```
-/broadcast Jangan lupa absen ya!
-```
-
-#### Menu Admin
-```
-/admin
-```
+- **SQLite** — semua data tersimpan di `data/spg.db` (tabel `attendance` & `customers`)
+- **Foto absensi** — tersimpan di folder `data/photos/`
+- Tidak butuh konfigurasi tambahan; database dibuat otomatis saat bot pertama kali dijalankan
 
 ## 📂 Struktur Folder
 
 ```
 whatsapp-bot-spg/
+├── index.js                  # Entry point
 ├── src/
-│   ├── config/              # Konfigurasi aplikasi
-│   │   └── index.js
-│   ├── handlers/            # Handler untuk setiap fitur
-│   │   ├── attendanceHandler.js
-│   │   ├── customerHandler.js
-│   │   ├── adminHandler.js
-│   │   └── commandHandler.js
-│   ├── services/            # Service layer
-│   │   ├── dataService.js         # Local JSON storage
-│   │   ├── supabaseService.js     # Supabase integration
-│   │   ├── googleSheetsService.js # Google Sheets integration
-│   │   └── storageService.js      # Unified storage interface
-│   ├── utils/               # Utility functions
-│   │   ├── helpers.js
-│   │   └── logger.js
-│   └── app.js               # Main application
-├── data/                    # Data storage
-│   ├── photos/              # Foto absensi
-│   ├── attendance.json      # Data absensi
-│   └── customers.json       # Data customer
-├── .env                     # Environment variables (buat sendiri)
-├── .env.example             # Template environment variables
-├── index.js                 # Entry point
-├── package.json
-└── README.md
+│   ├── app.js                # Koneksi WhatsApp (Baileys) + health check
+│   ├── config/               # Konfigurasi (env, supervisor, paths)
+│   ├── handlers/             # Handler per fitur
+│   │   ├── commandHandler.js     # Router perintah + proteksi supervisor
+│   │   ├── attendanceHandler.js  # Absensi masuk/pulang/status
+│   │   ├── customerHandler.js    # Registrasi & daftar customer
+│   │   └── adminHandler.js       # Stats/rekap/broadcast/hapus absen
+│   ├── services/             # Service layer
+│   │   ├── databaseService.js    # SQLite (node:sqlite)
+│   │   ├── dataService.js        # Query attendance & customer
+│   │   └── storageService.js     # Facade penyimpanan + foto
+│   └── utils/                # helpers.js, logger.js
+├── data/                     # Dibuat otomatis: spg.db, photos/
+├── auth_info_baileys/        # Sesi WhatsApp (dibuat otomatis, jangan di-commit)
+├── .env                      # Konfigurasi rahasia (buat sendiri dari .env.example)
+└── package.json
 ```
-
-## 💾 Penyimpanan Data
-
-Bot mendukung 3 metode penyimpanan:
-
-1. **Local JSON** (default, selalu aktif)
-   - Data disimpan di folder `data/`
-   - Tidak perlu konfigurasi tambahan
-
-2. **Supabase** (opsional, untuk database cloud)
-   - Setup di [supabase.com](https://supabase.com)
-   - Tambahkan konfigurasi di `.env`
-
-3. **Google Sheets** (opsional, untuk backup)
-   - Setup Google Service Account
-   - Download `credentials.json`
-   - Tambahkan konfigurasi di `.env`
 
 ## 🔧 Troubleshooting
 
-### Bot tidak bisa scan QR code
-- Pastikan Chrome/Chromium terinstall
-- Coba tambahkan `PUPPETEER_EXECUTABLE_PATH` di `.env`
-
-### Error saat install dependencies
-```bash
-npm install --legacy-peer-deps
-```
+### Bot tidak muncul QR code
+- Pastikan tidak ada proses bot lain yang berjalan (port 3000) — `lsof -i:3000`
+- Hapus folder `auth_info_baileys/` lalu mulai ulang untuk login ulang
 
 ### WhatsApp logout sendiri
 - Gunakan nomor WhatsApp yang jarang dipakai
 - Jangan scan QR code di multiple device
 
+### Perintah admin ditolak
+- Pastikan nomor Anda terdaftar di `SUPERVISOR_PHONES` dengan format internasional tanpa `+` (contoh `628123456789`)
+
 ## 📝 Environment Variables
 
-Pastikan semua environment variables sudah diset di file `.env`:
-
-**Wajib:**
-- `SUPERVISOR_PHONE` - Nomor WhatsApp admin/supervisor
-
-**Opsional:**
-- `SUPABASE_URL` - URL project Supabase
-- `SUPABASE_ANON_KEY` - Anon key dari Supabase
-- `GOOGLE_SHEETS_ID` - ID Google Spreadsheet
-- `GOOGLE_CREDENTIALS_FILE` - Path ke file credentials JSON
-
-## 🤝 Kontribusi
-
-Kontribusi sangat diterima! Silakan buat Pull Request atau buka Issue untuk bug report atau feature request.
+| Variable | Wajib | Keterangan |
+|----------|-------|------------|
+| `SUPERVISOR_PHONES` | ✅ | Nomor admin, pisahkan dengan koma jika lebih dari satu |
+| `PORT` | ❌ | Port health check server (default `3000`) |
+| `NODE_ENV` | ❌ | `production` / `development` (development menampilkan log debug) |
 
 ## 📄 License
 
-MIT License - lihat file LICENSE untuk detail.
-
-## 👨‍💻 Author
-
-Dibuat dengan ❤️ untuk monitoring SPG/SPB
-
-## 🆘 Support
-
-Jika ada pertanyaan atau butuh bantuan, silakan buka Issue di GitHub repository.
+MIT License

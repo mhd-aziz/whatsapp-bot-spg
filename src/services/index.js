@@ -4,8 +4,7 @@
  */
 
 module.exports = {
+  databaseService: require('./databaseService'),
   dataService: require('./dataService'),
-  supabaseService: require('./supabaseService'),
-  googleSheetsService: require('./googleSheetsService'),
   storageService: require('./storageService'),
 };

@@ -3,11 +3,11 @@
  * Main application logic for SPG/SPB monitoring bot
  */
 
-const { 
-  default: makeWASocket, 
-  useMultiFileAuthState, 
-  DisconnectReason, 
-  downloadMediaMessage 
+const {
+  default: makeWASocket,
+  useMultiFileAuthState,
+  DisconnectReason,
+  downloadMediaMessage,
 } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const express = require('express');
@@ -15,12 +15,12 @@ const { config, validateConfig } = require('./config');
 const commandHandler = require('./handlers/commandHandler');
 const storageService = require('./services/storageService');
 const logger = require('./utils/logger');
-const { extractPhoneNumber } = require('./utils/helpers');
 
 class WhatsAppBot {
   constructor() {
     this.sock = null;
     this.app = null;
+    this.server = null;
     this.isReady = false;
   }
 
@@ -35,6 +35,7 @@ class WhatsAppBot {
   initializeServer() {
     this.app = express();
     const port = config.bot.port;
+
     this.app.get('/', (req, res) => {
       res.json({
         status: 'ok',
@@ -42,24 +43,25 @@ class WhatsAppBot {
         timestamp: new Date().toISOString(),
       });
     });
-    this.app.listen(port, () => {
+
+    this.server = this.app.listen(port, () => {
       logger.info(`Health check server running on port ${port}`);
     });
   }
 
   async connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
-    
+
     this.sock = makeWASocket({
       logger: pino({ level: 'error' }),
       printQRInTerminal: true,
       auth: state,
-      browser: ['SPG Monitoring Bot', 'Chrome', '1.0.0']
+      browser: ['SPG Monitoring Bot', 'Chrome', '1.0.0'],
     });
 
     this.sock.ev.on('connection.update', async (update) => {
       const { connection, lastDisconnect, qr } = update;
-      
+
       if (qr) {
         logger.botEvent('QR Code received', 'Scan with WhatsApp');
       }
@@ -106,7 +108,7 @@ class WhatsAppBot {
       },
       downloadMedia: async () => {
         return await downloadMediaMessage(msg, 'buffer', {});
-      }
+      },
     };
 
     try {
@@ -115,9 +117,24 @@ class WhatsAppBot {
       logger.error('Error handling message', error);
     }
   }
+
+  async shutdown() {
+    logger.info('Shutting down bot...');
+
+    try {
+      if (this.sock) this.sock.end(undefined);
+    } catch (error) {
+      logger.error('Error closing WhatsApp socket', error.message);
+    }
+
+    try {
+      if (this.server) this.server.close();
+    } catch (error) {
+      logger.error('Error closing health server', error.message);
+    }
+
+    process.exit(0);
+  }
 }
 
-const bot = new WhatsAppBot();
-bot.initialize();
-
-module.exports = bot;
+module.exports = new WhatsAppBot();

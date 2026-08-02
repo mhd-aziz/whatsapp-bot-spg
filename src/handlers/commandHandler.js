@@ -7,7 +7,10 @@ const customerHandler = require('./customerHandler');
 const adminHandler = require('./adminHandler');
 const sessionService = require('../services/sessionService');
 const { extractPhoneNumber } = require('../utils/helpers');
+const { config } = require('../config');
 const logger = require('../utils/logger');
+
+const ADMIN_COMMANDS = ['/stats', '/rekap', '/broadcast', '/hapus_absen', '/admin'];
 
 class CommandHandler {
   async handleMessage(msg, sock) {
@@ -26,11 +29,18 @@ class CommandHandler {
       const lowerBody = body.toLowerCase();
 
       if (body.includes('#') && !body.startsWith('/')) {
-        await customerHandler.handleCustomerData(msg, body);
+        await customerHandler.handleSaveCustomer(msg, body);
         return;
       }
 
       if (body.startsWith('/')) {
+        const command = body.split(/\s+/)[0].toLowerCase();
+
+        if (ADMIN_COMMANDS.includes(command) && !config.supervisor.phones.includes(phone)) {
+          await msg.reply('⛔ Perintah ini khusus supervisor.');
+          return;
+        }
+
         await this.handleCommand(msg, sock, body);
         return;
       }
@@ -40,7 +50,6 @@ class CommandHandler {
       }
 
       await this.handleUnknown(msg, lowerBody);
-
     } catch (error) {
       logger.error('Error handling message', error);
       await msg.reply('❌ Terjadi kesalahan. Silakan coba lagi.');
@@ -54,29 +63,29 @@ class CommandHandler {
 
     switch (command) {
       case '/masuk':
-        await attendanceHandler.handleMasuk(msg);
+        await attendanceHandler.handleCheckIn(msg);
         break;
       case '/pulang':
-        await attendanceHandler.handlePulang(msg);
+        await attendanceHandler.handleCheckOut(msg);
         break;
       case '/status':
         await attendanceHandler.handleStatus(msg);
         break;
       case '/customer':
-        if (args) await customerHandler.handleCustomerData(msg, args);
-        else await customerHandler.handleCustomer(msg);
+        if (args) await customerHandler.handleSaveCustomer(msg, args);
+        else await customerHandler.handleCustomerHelp(msg);
         break;
       case '/list':
-        await customerHandler.handleList(msg);
+        await customerHandler.handleListCustomers(msg);
         break;
       case '/total':
-        await customerHandler.handleTotal(msg);
+        await customerHandler.handleCustomerCount(msg);
         break;
       case '/stats':
         await adminHandler.handleStats(msg);
         break;
       case '/rekap':
-        await adminHandler.handleRekap(msg, args);
+        await adminHandler.handleRecap(msg, args);
         break;
       case '/broadcast':
         await adminHandler.handleBroadcast(msg, sock, args);
@@ -95,7 +104,7 @@ class CommandHandler {
         await msg.reply('🏓 Pong! Bot aktif.');
         break;
       case '/hapus_absen':
-        await adminHandler.handleHapusAbsen(msg, args);
+        await adminHandler.handleDeleteAttendance(msg, args);
         break;
       default:
         await msg.reply('❓ Perintah tidak dikenal.\n\nKetik /help untuk daftar perintah.');
@@ -104,12 +113,12 @@ class CommandHandler {
 
   async handleKeyword(msg, sock, body) {
     const keywords = {
-      'masuk': () => attendanceHandler.handleMasuk(msg),
-      'pulang': () => attendanceHandler.handlePulang(msg),
+      'masuk': () => attendanceHandler.handleCheckIn(msg),
+      'pulang': () => attendanceHandler.handleCheckOut(msg),
       'absen': () => attendanceHandler.handleStatus(msg),
       'status': () => attendanceHandler.handleStatus(msg),
-      'customer': () => customerHandler.handleCustomer(msg),
-      'pelanggan': () => customerHandler.handleCustomer(msg),
+      'customer': () => customerHandler.handleCustomerHelp(msg),
+      'pelanggan': () => customerHandler.handleCustomerHelp(msg),
       'help': () => this.handleHelp(msg),
       'menu': () => this.handleHelp(msg),
       'p': () => msg.reply('🏓 Pong! Bot aktif.'),

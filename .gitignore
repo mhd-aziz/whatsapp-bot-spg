@@ -7,6 +7,7 @@ node_modules/
 # WhatsApp session data
 .wwebjs_auth/
 .wwebjs_cache/
+auth_info_baileys/
 
 # Credentials
 credentials.json

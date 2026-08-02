@@ -1,13 +1,13 @@
 {
   "name": "whatsapp-bot-spg",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "WhatsApp Bot untuk monitoring SPG/SPB dengan fitur absensi dan registrasi customer",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
-    "test": "bash test-quick.sh",
-    "verify": "node -e \"require('./src/config'); require('./src/utils/helpers'); require('./src/services/dataService'); require('./src/handlers/commandHandler'); console.log('✅ All modules verified');\""
+    "start": "node --disable-warning=ExperimentalWarning index.js",
+    "dev": "nodemon --disable-warning=ExperimentalWarning index.js",
+    "test": "for f in index.js src/app.js src/config/*.js src/utils/*.js src/services/*.js src/handlers/*.js; do node --check \"$f\" || exit 1; done && echo '✅ Syntax OK'",
+    "verify": "node -e \"require('./src/config'); require('./src/utils/helpers'); require('./src/services/storageService'); require('./src/handlers/commandHandler'); require('./src/app'); console.log('✅ All modules verified');\""
   },
   "keywords": [
     "whatsapp",
@@ -20,11 +20,9 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@supabase/supabase-js": "^2.110.8",
-    "@whiskeysockets/baileys": "^7.0.0-rc13",
+    "@whiskeysockets/baileys": "^7.0.0-rc14",
     "dotenv": "^16.3.1",
     "express": "^4.22.2",
-    "googleapis": "^140.0.0",
     "moment": "^2.30.1",
     "pino": "^10.3.1",
     "qrcode-terminal": "^0.12.0"
@@ -33,6 +31,6 @@
     "nodemon": "^3.0.2"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=22.5.0"
   }
 }

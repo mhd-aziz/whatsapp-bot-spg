@@ -10,38 +10,38 @@ const { extractPhoneNumber, getCurrentDate } = require('../utils/helpers');
 const SESSION_TIMEOUT_MS = 5 * 60 * 1000;
 
 class AttendanceHandler {
-  async handleMasuk(msg) {
+  async handleCheckIn(msg) {
     try {
       const phone = extractPhoneNumber(msg.from);
-      const todayAttendance = await storageService.getTodayAttendance(phone);
+      const today = getCurrentDate();
 
-      if (todayAttendance && todayAttendance.type === 'masuk') {
+      if (await storageService.hasAttendance(phone, today, 'masuk')) {
         await msg.reply('❌ Kamu sudah absen masuk hari ini!\n\nGunakan /pulang untuk absen pulang.');
         return;
       }
 
-      sessionService.setSession(phone, 'waiting_photo_masuk', { timestamp: Date.now() });
+      sessionService.setSession(phone, 'waiting_photo_checkin', { timestamp: Date.now() });
       await msg.reply('📸 Kirim foto lokasi kamu sekarang untuk absen masuk.\n\n⏰ Session berlaku 5 menit.');
     } catch (error) {
-      logger.error('Error handling masuk command', error);
+      logger.error('Error handling check-in command', error);
       await msg.reply('❌ Terjadi kesalahan. Silakan coba lagi.');
     }
   }
 
-  async handlePulang(msg) {
+  async handleCheckOut(msg) {
     try {
       const phone = extractPhoneNumber(msg.from);
-      const todayAttendance = await storageService.getTodayAttendance(phone);
+      const today = getCurrentDate();
 
-      if (todayAttendance && todayAttendance.type === 'pulang') {
+      if (await storageService.hasAttendance(phone, today, 'pulang')) {
         await msg.reply('❌ Kamu sudah absen pulang hari ini!');
         return;
       }
 
-      sessionService.setSession(phone, 'waiting_photo_pulang', { timestamp: Date.now() });
+      sessionService.setSession(phone, 'waiting_photo_checkout', { timestamp: Date.now() });
       await msg.reply('📸 Kirim foto lokasi kamu sekarang untuk absen pulang.\n\n⏰ Session berlaku 5 menit.');
     } catch (error) {
-      logger.error('Error handling pulang command', error);
+      logger.error('Error handling check-out command', error);
       await msg.reply('❌ Terjadi kesalahan. Silakan coba lagi.');
     }
   }
@@ -89,13 +89,13 @@ class AttendanceHandler {
       return true;
     }
 
-    const attendanceType = session.state === 'waiting_photo_masuk' ? 'masuk' : 'pulang';
+    const attendanceType = session.state === 'waiting_photo_checkin' ? 'masuk' : 'pulang';
     sessionService.clearSession(phone);
 
     try {
       await msg.reply('⏳ Sedang memproses absensi...');
       const buffer = await msg.downloadMedia();
-      
+
       if (!buffer) {
         await msg.reply('❌ Gagal mengunduh foto. Silakan coba lagi dengan /' + attendanceType);
         return true;
