@@ -72,9 +72,9 @@ Scan QR code yang muncul di terminal dengan aplikasi WhatsApp di smartphone Anda
 |----------|--------|
 | `/masuk` | Absen masuk — lanjut kirim foto selfie di lokasi |
 | `/pulang` | Absen pulang — lanjut kirim foto selfie di lokasi |
-| `/status` | Cek status absensi hari ini |
-| `/customer` | Registrasi customer baru (format `Nama#HP#Kota`) |
-| `/list` | Daftar customer yang kamu daftarkan |
+| `/status` | Status absensi hari ini + foto masuk/pulang |
+| `/customer` | Registrasi customer baru (format `Nama#HP#Kota`) — lalu kirim foto bukti |
+| `/list` | Daftar customer kamu + foto |
 | `/total` | Total customer kamu |
 | `/help` | Daftar perintah |
 | `/ping` | Cek bot aktif |

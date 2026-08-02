@@ -20,11 +20,16 @@ class CommandHandler {
 
       if (msg.hasMedia && msg.type === 'image') {
         if (session && session.state) {
-          await attendanceHandler.handlePhotoMessage(msg);
+          if (session.state === 'waiting_photo_customer') {
+            await customerHandler.handleCustomerPhoto(msg);
+          } else {
+            await attendanceHandler.handlePhotoMessage(msg);
+          }
         } else {
           await msg.reply(
-            '📸 Foto diterima, tapi kamu belum memulai absensi.\n\n' +
-            'Kirim /masuk untuk absen masuk, atau /pulang untuk absen pulang.'
+            '📸 Foto diterima, tapi belum ada proses yang membutuhkan foto.\n\n' +
+            'Absensi: /masuk atau /pulang\n' +
+            'Customer: /customer Nama#NoHp#Kota'
           );
         }
         return;
@@ -76,14 +81,14 @@ class CommandHandler {
         await attendanceHandler.handleCheckOut(msg);
         break;
       case '/status':
-        await attendanceHandler.handleStatus(msg);
+        await attendanceHandler.handleStatus(msg, sock);
         break;
       case '/customer':
         if (args) await customerHandler.handleSaveCustomer(msg, args);
         else await customerHandler.handleCustomerHelp(msg);
         break;
       case '/list':
-        await customerHandler.handleListCustomers(msg);
+        await customerHandler.handleListCustomers(msg, sock);
         break;
       case '/total':
         await customerHandler.handleCustomerCount(msg);
@@ -125,8 +130,8 @@ class CommandHandler {
     const keywords = {
       'masuk': () => attendanceHandler.handleCheckIn(msg),
       'pulang': () => attendanceHandler.handleCheckOut(msg),
-      'absen': () => attendanceHandler.handleStatus(msg),
-      'status': () => attendanceHandler.handleStatus(msg),
+      'absen': () => attendanceHandler.handleStatus(msg, sock),
+      'status': () => attendanceHandler.handleStatus(msg, sock),
       'customer': () => customerHandler.handleCustomerHelp(msg),
       'pelanggan': () => customerHandler.handleCustomerHelp(msg),
       'help': () => this.handleHelp(msg),
@@ -159,10 +164,10 @@ class CommandHandler {
       '*Absensi:*\n' +
       '/masuk - Absen masuk (dengan foto)\n' +
       '/pulang - Absen pulang (dengan foto)\n' +
-      '/status - Cek status absensi\n\n' +
+      '/status - Cek status + foto masuk/pulang\n\n' +
       '*Customer:*\n' +
-      '/customer - Daftarkan customer baru\n' +
-      '/list - Daftar customer\n' +
+      '/customer - Daftarkan customer baru + foto bukti\n' +
+      '/list - Daftar customer + foto\n' +
       '/total - Total customer\n\n' +
       '*Lainnya:*\n' +
       '/help - Bantuan\n' +

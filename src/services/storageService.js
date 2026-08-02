@@ -59,6 +59,10 @@ class StorageService {
     return dataService.getCustomerCountBySpg(spgPhone);
   }
 
+  updateCustomerPhoto(id, photo) {
+    return dataService.updateCustomerPhoto(id, photo);
+  }
+
   // ---------- Users ----------
 
   getAllUsers() {

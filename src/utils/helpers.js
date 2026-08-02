@@ -23,6 +23,30 @@ function normalizePhoneNumber(input) {
   return digits.startsWith('0') ? `62${digits.slice(1)}` : digits;
 }
 
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB safety cap for uploaded photos
+
+/**
+ * Validate that a downloaded media buffer is a real, reasonably-sized image.
+ * WhatsApp re-encodes photos, but this guards against corrupt/large payloads.
+ * @param {Buffer} buffer
+ * @returns {{ ok: boolean, error?: string }}
+ */
+function validateImageBuffer(buffer) {
+  if (!Buffer.isBuffer(buffer) || buffer.length === 0) {
+    return { ok: false, error: 'File foto kosong.' };
+  }
+  if (buffer.length > MAX_IMAGE_BYTES) {
+    return { ok: false, error: 'Ukuran foto terlalu besar (maks 10 MB).' };
+  }
+  const isJpeg = buffer.length > 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  const isPng = buffer.length > 8 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47;
+  const isWebp = buffer.length > 12 && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP';
+  if (!isJpeg && !isPng && !isWebp) {
+    return { ok: false, error: 'File bukan gambar (JPEG/PNG/WebP).' };
+  }
+  return { ok: true };
+}
+
 /**
  * Extract phone number from WhatsApp ID (resolves LID jids to real numbers)
  * @param {string} whatsappId - WhatsApp ID (e.g., 62812345678@s.whatsapp.net, 1907...@lid)
@@ -116,4 +140,5 @@ module.exports = {
   resolveDate,
   parseIndonesianDate,
   formatIndonesianDate,
+  validateImageBuffer,
 };

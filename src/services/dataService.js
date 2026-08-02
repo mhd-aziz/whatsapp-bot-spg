@@ -97,6 +97,10 @@ class DataService {
     return row.total;
   }
 
+  updateCustomerPhoto(id, photo) {
+    return db.run('UPDATE customers SET photo = ? WHERE id = ?', [photo, id]);
+  }
+
   // ---------- Stats & Users ----------
 
   getDailyStats(date = getCurrentDate()) {

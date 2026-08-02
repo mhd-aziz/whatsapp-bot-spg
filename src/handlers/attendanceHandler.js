@@ -2,10 +2,11 @@
  * Attendance Handler (Baileys Version)
  */
 
+const fs = require('fs').promises;
 const storageService = require('../services/storageService');
 const sessionService = require('../services/sessionService');
 const logger = require('../utils/logger');
-const { extractPhoneNumber, getCurrentDate, formatIndonesianDate } = require('../utils/helpers');
+const { extractPhoneNumber, getCurrentDate, formatIndonesianDate, validateImageBuffer } = require('../utils/helpers');
 
 const SESSION_TIMEOUT_MS = 5 * 60 * 1000;
 
@@ -46,26 +47,53 @@ class AttendanceHandler {
     }
   }
 
-  async handleStatus(msg) {
+  async handleStatus(msg, sock) {
     try {
       const phone = extractPhoneNumber(msg.from);
-      const todayAttendance = await storageService.getTodayAttendance(phone);
+      const today = getCurrentDate();
+      const records = await storageService.getAttendanceByDateAndPhone(today, phone);
 
-      if (!todayAttendance) {
+      if (!records || records.length === 0) {
         await msg.reply('📋 *Status Absensi Hari Ini*\n\n❌ Belum ada absensi.\n\nKirim /masuk untuk absen masuk.');
         return;
       }
 
-      const emoji = todayAttendance.type === 'masuk' ? '✅' : '🏠';
-      const label = todayAttendance.type === 'masuk' ? 'MASUK' : 'PULANG';
+      // Keep only the latest record of each type
+      const latest = { masuk: null, pulang: null };
+      for (const record of records) {
+        latest[record.type] = record;
+      }
+
+      const formatTime = (record) => {
+        if (!record) return '-';
+        try {
+          return new Date(record.timestamp).toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+        } catch {
+          return '-';
+        }
+      };
 
       await msg.reply(
         `📋 *Status Absensi Hari Ini*\n\n` +
-        `${emoji} Status: *${label}*\n` +
-        `📅 Tanggal: ${formatIndonesianDate(todayAttendance.date)}\n` +
-        `⏰ Waktu: ${new Date(todayAttendance.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}\n` +
-        (todayAttendance.photo ? `📷 Foto: Tersimpan\n` : '')
+        `📅 Tanggal: ${formatIndonesianDate(today)}\n\n` +
+        `✅ Masuk: ${formatTime(latest.masuk)}${latest.masuk && latest.masuk.photo ? ' 📷' : ''}\n` +
+        `🏠 Pulang: ${formatTime(latest.pulang)}${latest.pulang && latest.pulang.photo ? ' 📷' : ''}`
       );
+
+      // Send the SPG's own photos (masuk & pulang) as attachments
+      for (const record of [latest.masuk, latest.pulang]) {
+        if (!record || !record.photo) continue;
+        try {
+          const image = await fs.readFile(storageService.getPhotoPath(record.photo));
+          const label = record.type === 'masuk' ? 'Foto Masuk' : 'Foto Pulang';
+          await sock.sendMessage(msg.from, { image, caption: `${label} — ${formatTime(record)}` });
+        } catch (error) {
+          logger.warn(`Photo not found for status: ${record.photo}`, error);
+        }
+      }
     } catch (error) {
       logger.error('Error handling status command', error);
       await msg.reply('❌ Terjadi kesalahan saat mengecek status.');
@@ -98,6 +126,12 @@ class AttendanceHandler {
 
       if (!buffer) {
         await msg.reply('❌ Gagal mengunduh foto. Silakan coba lagi dengan /' + attendanceType);
+        return true;
+      }
+
+      const validation = validateImageBuffer(buffer);
+      if (!validation.ok) {
+        await msg.reply(`❌ ${validation.error} Silakan kirim foto lain.`);
         return true;
       }
 

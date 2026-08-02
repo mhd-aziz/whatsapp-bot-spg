@@ -64,9 +64,9 @@ whatsapp-bot-spg/
 |---|---|
 | `/masuk` → kirim foto | Absen masuk (anti duplikat per hari) |
 | `/pulang` → kirim foto | Absen pulang (anti duplikat per hari) |
-| `/status` | Status absensi hari ini (record TERBARU) |
-| `/customer` / pesan `Nama#HP#Kota` | Registrasi customer |
-| `/list`, `/total` | Daftar & jumlah customer pribadi |
+| `/status` | Status absensi hari ini + foto masuk/pulang |
+| `/customer` / pesan `Nama#HP#Kota` | Registrasi customer — lalu kirim foto bukti |
+| `/list`, `/total` | Daftar (dengan foto) & jumlah customer pribadi |
 | `/help`, `/ping` | Bantuan, cek aktif |
 
 ### Admin (hanya nomor di `SUPERVISOR_PHONES`)

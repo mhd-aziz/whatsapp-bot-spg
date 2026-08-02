@@ -23,8 +23,33 @@ class DatabaseService {
     this.db = new DatabaseSync(config.paths.database);
     this.db.exec('PRAGMA journal_mode = WAL;');
     this.createTables();
+    this.migrate();
 
     logger.info(`SQLite database initialized: ${config.paths.database}`);
+  }
+
+  /** Apply migrations to existing databases (new installs get full schema from createTables) */
+  migrate() {
+    const customerCols = this.db
+      .prepare('PRAGMA table_info(customers)')
+      .all()
+      .map((c) => c.name);
+
+    if (!customerCols.includes('photo')) {
+      try {
+        this.db.exec('ALTER TABLE customers ADD COLUMN photo TEXT');
+        logger.info('Migration: customers.photo column added');
+      } catch (error) {
+        // Re-check: another process may have added the column already
+        const after = this.db
+          .prepare('PRAGMA table_info(customers)')
+          .all()
+          .map((c) => c.name);
+        if (!after.includes('photo')) {
+          logger.error('Migration failed: customers.photo column', error);
+        }
+      }
+    }
   }
 
   createTables() {
@@ -49,7 +74,8 @@ class DatabaseService {
         city TEXT,
         spg_phone TEXT NOT NULL,
         date TEXT NOT NULL,
-        timestamp TEXT NOT NULL
+        timestamp TEXT NOT NULL,
+        photo TEXT
       );
       CREATE INDEX IF NOT EXISTS idx_customers_spg_date ON customers (spg_phone, date);
     `);
