@@ -11,9 +11,11 @@ const {
 } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const express = require('express');
+const fs = require('fs'); // TODO(dev-aid): hapus setelah sesi testing manual selesai
 const { config, validateConfig } = require('./config');
 const commandHandler = require('./handlers/commandHandler');
 const storageService = require('./services/storageService');
+const lidResolver = require('./utils/lidResolver');
 const logger = require('./utils/logger');
 
 class WhatsAppBot {
@@ -64,6 +66,7 @@ class WhatsAppBot {
 
       if (qr) {
         logger.botEvent('QR Code received', 'Scan with WhatsApp');
+        fs.writeFileSync('/tmp/spg-qr.txt', qr); // TODO(dev-aid): hapus setelah sesi testing manual selesai
       }
 
       if (connection === 'close') {
@@ -82,6 +85,12 @@ class WhatsAppBot {
 
     this.sock.ev.on('creds.update', saveCreds);
 
+    // Keep LID → phone mappings fresh (privacy-hidden numbers arrive as LIDs)
+    lidResolver.refreshFromDisk();
+    this.sock.ev.on('lid-mapping.update', ({ lid, pn }) => {
+      lidResolver.registerLidMapping(lid, pn);
+    });
+
     this.sock.ev.on('messages.upsert', async ({ messages, type }) => {
       if (type !== 'notify') return;
       for (const msg of messages) {
@@ -94,11 +103,15 @@ class WhatsAppBot {
 
   async handleMessage(msg) {
     const jid = msg.key.remoteJid;
+    const altJid = msg.key.remoteJidAlt; // PN alternative when remoteJid is a LID (v7)
+    const from = (altJid && /^(\d+)@/.test(altJid)) ? altJid : jid;
+    const msgBody = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
+    logger.debug('Message received', { jid, alt: altJid, fromMe: msg.key.fromMe, body: msgBody.slice(0, 40) }); // TODO(dev-aid): hapus setelah sesi testing manual selesai
     if (jid.includes('@g.us') || jid === 'status@broadcast') return;
 
     // Adapt Baileys message to match the handler's expectation
     const adaptedMsg = {
-      from: jid,
+      from,
       body: msg.message?.conversation || msg.message?.extendedTextMessage?.text || '',
       hasMedia: !!(msg.message?.imageMessage || msg.message?.videoMessage || msg.message?.documentMessage),
       type: msg.message?.imageMessage ? 'image' : 'chat',

@@ -60,6 +60,13 @@ class DataService {
     return db.all('SELECT * FROM attendance WHERE date = ? ORDER BY id ASC', [date]);
   }
 
+  getAttendanceByDateAndPhone(date, phone) {
+    return db.all(
+      'SELECT * FROM attendance WHERE date = ? AND phone = ? ORDER BY id ASC',
+      [date, phone]
+    );
+  }
+
   // ---------- Customers ----------
 
   async addCustomer(customer) {

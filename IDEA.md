@@ -74,9 +74,10 @@ whatsapp-bot-spg/
 | Perintah | Fungsi |
 |---|---|
 | `/stats` | Statistik hari ini (masuk/pulang/SPG aktif/customer) |
-| `/rekap` [`kemarin` \| `DD-MM-YYYY` \| `YYYY-MM-DD`] | Rekap absensi per tanggal |
+| `/rekap` [`kemarin` \| `8 oktober 2026` \| `DD-MM-YYYY` \| `YYYY-MM-DD`] | Rekap absensi per tanggal |
+| `/detail <nomor>` | Detail absensi + foto masuk/pulang hari ini (bisa `08xx` atau `628xx`) |
 | `/broadcast <pesan>` | Kirim pesan ke semua SPG terdaftar |
-| `/hapus_absen <nomor>` | Reset absensi nomor tsb untuk hari ini |
+| `/hapus_absen <nomor>` | Reset absensi nomor tsb untuk hari ini (bisa `08xx` atau `628xx`) |
 | `/admin` | Menu admin |
 
 **Gerbang supervisor** ada di `commandHandler.js` (`ADMIN_COMMANDS` + cek `config.supervisor.phones`). Nomor yang tidak terdaftar mendapat `⛔ Perintah ini khusus supervisor.`
@@ -107,14 +108,15 @@ Catatan desain: absen masuk & pulang = **2 record terpisah**; `getTodayAttendanc
 ## 7. Setup & Perintah
 
 ```bash
-cp .env.example .env          # lalu isi SUPERVISOR_PHONES (bisa multi, pisah koma)
+cp .env.example .env.dev      # development  → npm run start:dev
+cp .env.example .env.prod     # production   → npm run start:prod
 npm install
-npm start                     # scan QR di terminal dengan WhatsApp
+npm run start:dev             # scan QR di terminal dengan WhatsApp
 npm test                      # syntax check semua file JS
 npm run verify                # load semua modul
 ```
 
-`.env` minimum:
+Environment dipilih otomatis dari `NODE_ENV` (`dev` default, `prod` untuk produksi) di `src/config/index.js`. Isi `SUPERVISOR_PHONES` di file yang dipakai:
 
 ```env
 PORT=3000
@@ -124,7 +126,7 @@ SUPERVISOR_PHONES=628123456789,628987654321   # format internasional tanpa +
 ## 8. Aturan & Batasan (dari user — HORMATI)
 
 - User **wajib menyetujui** setiap perubahan fitur/file; agent AI tidak boleh berubah-ubah sendiri.
-- **Jangan pernah** membaca/menampilkan isi `.env` atau kredensial; jangan commit `auth_info_baileys/` (sudah di `.gitignore`).
+- **Jangan pernah** membaca/menampilkan isi `.env.dev` / `.env.prod` atau kredensial; jangan commit file env & `auth_info_baileys/` (sudah di `.gitignore`).
 - `data/` dan `auth_info_baileys/` adalah artefak runtime — boleh dihapus untuk reset (login ulang / data uji), tidak boleh di-commit.
 - Jangan install dependency baru tanpa persetujuan user.
 - Testing disarankan via mock (lihat riwayat: `mock-whatsapp-test` di `/tmp` pernah dipakai) atau boot singkat; jangan scan QR atas nama user.

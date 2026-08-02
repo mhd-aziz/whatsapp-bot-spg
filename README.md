@@ -17,9 +17,10 @@ Bot WhatsApp untuk monitoring SPG (Sales Promotion Girl) dan SPB (Sales Promotio
 
 ### 👑 Admin/Supervisor
 - ✅ Laporan statistik harian (`/stats`)
-- ✅ Rekap absensi per tanggal (`/rekap`)
+- ✅ Rekap absensi per tanggal (`/rekap` — bisa `kemarin` atau `8 oktober 2026`)
+- ✅ Detail absensi + foto SPG per nomor (`/detail`)
 - ✅ Broadcast pesan ke semua SPG/SPB (`/broadcast`)
-- ✅ Hapus data absensi user (`/hapus_absen`)
+- ✅ Hapus data absensi user (`/hapus_absen` — terima `08xx` atau `628xx`)
 - 🔒 Perintah admin **hanya bisa dipakai nomor supervisor** yang terdaftar
 
 ## 🚀 Instalasi
@@ -34,11 +35,14 @@ npm install
 
 ### 2. Konfigurasi Environment
 
+Salin template ke file environment yang sesuai (dipilih otomatis oleh bot berdasarkan `NODE_ENV`):
+
 ```bash
-cp .env.example .env
+cp .env.example .env.dev    # untuk development  → npm run start:dev
+cp .env.example .env.prod   # untuk production   → npm run start:prod
 ```
 
-Isi `.env`:
+Isi `SUPERVISOR_PHONES` di file yang dipakai:
 
 ```env
 # Nomor WhatsApp supervisor — bisa lebih dari satu, pisahkan dengan koma.
@@ -46,10 +50,14 @@ Isi `.env`:
 SUPERVISOR_PHONES=628123456789,628987654321
 ```
 
+> `.env.dev` / `.env.prod` berisi data sensitif dan **tidak di-commit** (ada di `.gitignore`).
+
 ### 3. Jalankan Bot
 
 ```bash
-npm start
+npm run start:dev    # development (memakai .env.dev)
+npm run start:prod   # production  (memakai .env.prod)
+# atau: npm start    # default NODE_ENV=dev → memakai .env.dev
 ```
 
 ### 4. Scan QR Code
@@ -84,10 +92,12 @@ Budi Santoso#081234567890#Jakarta
 | `/stats` | Statistik hari ini |
 | `/rekap` | Rekap absensi hari ini |
 | `/rekap kemarin` | Rekap kemarin |
+| `/rekap 8 oktober 2026` | Rekap tanggal tertentu (format Indonesia) |
 | `/rekap 2024-01-15` | Rekap tanggal tertentu (YYYY-MM-DD) |
 | `/rekap 15-01-2024` | Rekap tanggal tertentu (DD-MM-YYYY) |
+| `/detail 087876629341` | Detail absensi + foto masuk/pulang hari ini (bisa 08xx atau 628xx) |
 | `/broadcast Pesan...` | Kirim pesan ke semua SPG/SPB |
-| `/hapus_absen 628123456789` | Hapus absen user hari ini |
+| `/hapus_absen 628123456789` | Hapus absen user hari ini (bisa 08xx atau 628xx) |
 | `/admin` | Menu admin |
 
 ## 💾 Penyimpanan Data
@@ -116,7 +126,7 @@ whatsapp-bot-spg/
 │   └── utils/                # helpers.js, logger.js
 ├── data/                     # Dibuat otomatis: spg.db, photos/
 ├── auth_info_baileys/        # Sesi WhatsApp (dibuat otomatis, jangan di-commit)
-├── .env                      # Konfigurasi rahasia (buat sendiri dari .env.example)
+├── .env.dev / .env.prod      # Konfigurasi rahasia (buat dari .env.example, jangan di-commit)
 └── package.json
 ```
 

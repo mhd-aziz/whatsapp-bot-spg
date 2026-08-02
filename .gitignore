@@ -3,6 +3,8 @@ node_modules/
 
 # Environment variables (contains sensitive data)
 .env
+.env.dev
+.env.prod
 
 # WhatsApp session data
 .wwebjs_auth/

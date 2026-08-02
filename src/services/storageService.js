@@ -37,6 +37,10 @@ class StorageService {
     return dataService.getAttendanceByDate(date);
   }
 
+  getAttendanceByDateAndPhone(date, phone) {
+    return dataService.getAttendanceByDateAndPhone(date, phone);
+  }
+
   getStats(date) {
     return dataService.getDailyStats(date);
   }

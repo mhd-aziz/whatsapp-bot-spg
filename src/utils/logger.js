@@ -62,7 +62,7 @@ function info(message, data = null) {
  * @param {any} data - Optional data
  */
 function debug(message, data = null) {
-  if (process.env.NODE_ENV === 'development') {
+  if (['dev', 'development'].includes(process.env.NODE_ENV)) {
     log(LOG_LEVELS.DEBUG, message, data);
   }
 }

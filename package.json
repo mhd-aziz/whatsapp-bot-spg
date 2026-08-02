@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node --disable-warning=ExperimentalWarning index.js",
-    "dev": "nodemon --disable-warning=ExperimentalWarning index.js",
+    "start:dev": "NODE_ENV=dev node --disable-warning=ExperimentalWarning index.js",
+    "start:prod": "NODE_ENV=prod node --disable-warning=ExperimentalWarning index.js",
+    "dev": "NODE_ENV=dev nodemon --disable-warning=ExperimentalWarning index.js",
     "test": "for f in index.js src/app.js src/config/*.js src/utils/*.js src/services/*.js src/handlers/*.js; do node --check \"$f\" || exit 1; done && echo '✅ Syntax OK'",
     "verify": "node -e \"require('./src/config'); require('./src/utils/helpers'); require('./src/services/storageService'); require('./src/handlers/commandHandler'); require('./src/app'); console.log('✅ All modules verified');\""
   },

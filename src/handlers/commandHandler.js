@@ -10,7 +10,7 @@ const { extractPhoneNumber } = require('../utils/helpers');
 const { config } = require('../config');
 const logger = require('../utils/logger');
 
-const ADMIN_COMMANDS = ['/stats', '/rekap', '/broadcast', '/hapus_absen', '/admin'];
+const ADMIN_COMMANDS = ['/stats', '/rekap', '/broadcast', '/hapus_absen', '/detail', '/admin'];
 
 class CommandHandler {
   async handleMessage(msg, sock) {
@@ -18,8 +18,15 @@ class CommandHandler {
       const phone = extractPhoneNumber(msg.from);
       const session = sessionService.getSession(phone);
 
-      if (msg.hasMedia && msg.type === 'image' && session && session.state) {
-        await attendanceHandler.handlePhotoMessage(msg);
+      if (msg.hasMedia && msg.type === 'image') {
+        if (session && session.state) {
+          await attendanceHandler.handlePhotoMessage(msg);
+        } else {
+          await msg.reply(
+            '📸 Foto diterima, tapi kamu belum memulai absensi.\n\n' +
+            'Kirim /masuk untuk absen masuk, atau /pulang untuk absen pulang.'
+          );
+        }
         return;
       }
 
@@ -86,6 +93,9 @@ class CommandHandler {
         break;
       case '/rekap':
         await adminHandler.handleRecap(msg, args);
+        break;
+      case '/detail':
+        await adminHandler.handleDetail(msg, sock, args);
         break;
       case '/broadcast':
         await adminHandler.handleBroadcast(msg, sock, args);

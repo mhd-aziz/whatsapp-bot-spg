@@ -5,8 +5,6 @@
  * dengan fitur absensi dan registrasi customer.
  */
 
-require('dotenv').config();
-
 const bot = require('./src/app');
 const logger = require('./src/utils/logger');
 

@@ -2,17 +2,23 @@
  * Admin Handler (Baileys Version)
  */
 
+const fs = require('fs').promises;
 const logger = require('../utils/logger');
 const storageService = require('../services/storageService');
-const { getCurrentDate, resolveDate, extractPhoneNumber } = require('../utils/helpers');
+const {
+  getCurrentDate,
+  resolveDate,
+  extractPhoneNumber,
+  normalizePhoneNumber,
+  formatIndonesianDate,
+} = require('../utils/helpers');
 
 class AdminHandler {
   async handleStats(msg) {
     try {
       const stats = await storageService.getStats(getCurrentDate());
       await msg.reply(
-        `📊 *Statistik Hari Ini*\n\n` +
-        `📅 Tanggal: ${stats.date}\n` +
+        `📊 *Statistik Hari Ini* (${formatIndonesianDate(stats.date)})\n\n` +
         `✅ Total Absen Masuk: ${stats.masuk}\n` +
         `🏠 Total Absen Pulang: ${stats.pulang}\n` +
         `👥 SPG Aktif: ${stats.unique}\n` +
@@ -28,9 +34,10 @@ class AdminHandler {
     try {
       const date = resolveDate(args);
       const records = await storageService.getRekap(date);
+      const dateLabel = formatIndonesianDate(date);
 
       if (!records || records.length === 0) {
-        await msg.reply(`📄 *Rekap Absensi ${date}*\n\nTidak ada data.`);
+        await msg.reply(`📄 *Rekap Absensi ${dateLabel}*\n\nTidak ada data.`);
         return;
       }
 
@@ -52,7 +59,7 @@ class AdminHandler {
         });
       };
 
-      let text = `📄 *Rekap Absensi ${date}*\n\n`;
+      let text = `📄 *Rekap Absensi ${dateLabel}*\n\n`;
       for (const [phone, times] of Object.entries(grouped)) {
         text += `👤 ${phone}\n`;
         text += `  ✅ Masuk: ${formatTime(times.masuk)}\n`;
@@ -63,6 +70,74 @@ class AdminHandler {
     } catch (error) {
       logger.error('Error handling recap', error);
       await msg.reply('❌ Gagal mengambil rekap.');
+    }
+  }
+
+  async handleDetail(msg, sock, args) {
+    try {
+      const phone = normalizePhoneNumber(args);
+      if (!phone) {
+        await msg.reply(
+          '⚠️ Gunakan: /detail <nomor hp>\n' +
+          'Contoh: /detail 087876629341\n' +
+          'Contoh: /detail 6287876629341'
+        );
+        return;
+      }
+
+      const date = getCurrentDate();
+      const records = await storageService.getAttendanceByDateAndPhone(date, phone);
+
+      if (!records || records.length === 0) {
+        await msg.reply(
+          `📄 Tidak ada data absensi ${phone} pada ${formatIndonesianDate(date)}.`
+        );
+        return;
+      }
+
+      // Keep only the latest record of each type (records are ordered by id ASC)
+      const latest = { masuk: null, pulang: null };
+      for (const record of records) {
+        latest[record.type] = record;
+      }
+
+      const formatTime = (record) => {
+        if (!record) return '-';
+        try {
+          return new Date(record.timestamp).toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+        } catch {
+          return '-';
+        }
+      };
+
+      let text = `📄 *Detail Absensi*\n\n` +
+        `👤 Nomor: ${phone}\n` +
+        `📅 Tanggal: ${formatIndonesianDate(date)}\n\n` +
+        `✅ Masuk: ${formatTime(latest.masuk)}\n` +
+        `🏠 Pulang: ${formatTime(latest.pulang)}`;
+
+      await msg.reply(text);
+
+      // Send the SPG's photos (masuk & pulang) as attachments
+      for (const record of [latest.masuk, latest.pulang]) {
+        if (!record || !record.photo) continue;
+        try {
+          const image = await fs.readFile(storageService.getPhotoPath(record.photo));
+          const label = record.type === 'masuk' ? 'Foto Masuk' : 'Foto Pulang';
+          await sock.sendMessage(msg.from, {
+            image,
+            caption: `${label} — ${phone} ${formatTime(record)}`,
+          });
+        } catch (error) {
+          logger.error(`Failed to send photo ${record.photo}`, error.message);
+        }
+      }
+    } catch (error) {
+      logger.error('Error handling detail', error);
+      await msg.reply('❌ Gagal mengambil detail absensi.');
     }
   }
 
@@ -94,13 +169,13 @@ class AdminHandler {
 
   async handleDeleteAttendance(msg, args) {
     try {
-      const phone = args || extractPhoneNumber(msg.from);
+      const phone = normalizePhoneNumber(args) || extractPhoneNumber(msg.from);
       const date = getCurrentDate();
       const deleted = await storageService.deleteAttendance(phone, date);
       await msg.reply(
         deleted
-          ? `✅ Data absensi ${phone} tanggal ${date} telah dihapus.`
-          : `⚠️ Tidak ada data absensi ${phone} tanggal ${date}.`
+          ? `✅ Data absensi ${phone} tanggal ${formatIndonesianDate(date)} telah dihapus.`
+          : `⚠️ Tidak ada data absensi ${phone} tanggal ${formatIndonesianDate(date)}.`
       );
     } catch (error) {
       logger.error('Error handling delete attendance', error);
@@ -112,9 +187,10 @@ class AdminHandler {
     await msg.reply(
       '👑 *Menu Admin*\n\n' +
       '/stats - Statistik hari ini\n' +
-      '/rekap [tanggal] - Rekap absensi (kosong=hari ini, kemarin, DD-MM-YYYY, YYYY-MM-DD)\n' +
+      '/rekap [tanggal] - Rekap absensi (kosong=hari ini, kemarin, atau 8 oktober 2026)\n' +
+      '/detail [nomor] - Detail absensi + foto SPG hari ini\n' +
       '/broadcast [pesan] - Kirim pesan ke semua\n' +
-      '/hapus_absen [nomor] - Hapus absen user'
+      '/hapus_absen [nomor] - Hapus absen user (bisa 08xx atau 628xx)'
     );
   }
 }

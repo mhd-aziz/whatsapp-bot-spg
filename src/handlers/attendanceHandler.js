@@ -5,7 +5,7 @@
 const storageService = require('../services/storageService');
 const sessionService = require('../services/sessionService');
 const logger = require('../utils/logger');
-const { extractPhoneNumber, getCurrentDate } = require('../utils/helpers');
+const { extractPhoneNumber, getCurrentDate, formatIndonesianDate } = require('../utils/helpers');
 
 const SESSION_TIMEOUT_MS = 5 * 60 * 1000;
 
@@ -62,8 +62,8 @@ class AttendanceHandler {
       await msg.reply(
         `📋 *Status Absensi Hari Ini*\n\n` +
         `${emoji} Status: *${label}*\n` +
-        `📅 Tanggal: ${todayAttendance.date}\n` +
-        `⏰ Waktu: ${todayAttendance.timestamp}\n` +
+        `📅 Tanggal: ${formatIndonesianDate(todayAttendance.date)}\n` +
+        `⏰ Waktu: ${new Date(todayAttendance.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}\n` +
         (todayAttendance.photo ? `📷 Foto: Tersimpan\n` : '')
       );
     } catch (error) {
