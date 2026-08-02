@@ -68,6 +68,7 @@ whatsapp-bot-spg/
 | `/customer` / pesan `Nama#HP#Kota` | Registrasi customer — lalu kirim foto bukti |
 | `/list` | Daftar customer (teks, tanpa foto) |
 | `/detailcust <nama>` | Detail lengkap 1 customer + foto |
+| `/editcust <nama>#<field>#<nilai>` | Edit data customer (field: nama/hp/kota) — hindari salah data |
 | `/help`, `/ping` | Bantuan, cek aktif |
 
 ### Admin (hanya nomor di `SUPERVISOR_PHONES`)

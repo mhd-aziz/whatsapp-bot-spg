@@ -101,6 +101,20 @@ class DataService {
     return db.run('UPDATE customers SET photo = ? WHERE id = ?', [photo, id]);
   }
 
+  updateCustomer(id, updates) {
+    const allowed = ['name', 'phone', 'city'];
+    const fields = Object.keys(updates).filter(
+      (k) => allowed.includes(k) && updates[k] !== undefined && updates[k] !== null
+    );
+    if (fields.length === 0) return { changes: 0 };
+    const setClause = fields.map((f) => `${f} = ?`).join(', ');
+    const result = db.run(
+      `UPDATE customers SET ${setClause} WHERE id = ?`,
+      [...fields.map((f) => updates[f]), id]
+    );
+    return { changes: Number(result.changes) };
+  }
+
   // ---------- Stats & Users ----------
 
   getDailyStats(date = getCurrentDate()) {

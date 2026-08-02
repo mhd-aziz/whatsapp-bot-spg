@@ -195,6 +195,84 @@ class CustomerHandler {
     }
   }
 
+  async handleEditCustomer(msg, args) {
+    try {
+      const phone = extractPhoneNumber(msg.from);
+      const parts = (args || '').split('#').map((p) => p.trim());
+
+      if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) {
+        await msg.reply(
+          '⚠️ Format salah. Gunakan:\n' +
+          '/editcust <nama>#<field>#<nilai baru>\n\n' +
+          'Field: nama, hp, kota\n\n' +
+          'Contoh:\n' +
+          '/editcust Budi#kota#Jakarta Pusat\n' +
+          '/editcust Budi#hp#081234567890'
+        );
+        return;
+      }
+
+      const [nameQuery, fieldRaw, newValue] = parts;
+      const field = fieldRaw.toLowerCase();
+      const FIELD_MAP = {
+        nama: 'name',
+        name: 'name',
+        hp: 'phone',
+        no: 'phone',
+        nomor: 'phone',
+        telepon: 'phone',
+        kota: 'city',
+        city: 'city',
+      };
+      const dbField = FIELD_MAP[field];
+
+      if (!dbField) {
+        await msg.reply(
+          '⚠️ Field tidak dikenal. Gunakan: nama, hp, atau kota.\n\n' +
+          'Contoh: /editcust Budi#kota#Jakarta Pusat'
+        );
+        return;
+      }
+
+      const customers = await storageService.getSpgCustomers(phone);
+      const matches = customers.filter((c) => c.name.toLowerCase().includes(nameQuery.toLowerCase()));
+
+      if (matches.length === 0) {
+        await msg.reply(`🔍 Customer dengan nama *"${nameQuery}"* tidak ditemukan.`);
+        return;
+      }
+
+      if (matches.length > 1) {
+        let text = `🔎 Ditemukan *${matches.length}* customer dengan nama mirip:\n\n`;
+        matches.forEach((c, i) => {
+          text += `${i + 1}. ${c.name} (${c.phone}) - ${c.city}\n`;
+        });
+        text += '\nKetik nama yang lebih spesifik.';
+        await msg.reply(text);
+        return;
+      }
+
+      const customer = matches[0];
+      const labelMap = { name: 'Nama', phone: 'No. HP', city: 'Kota' };
+      const oldValue = customer[dbField] || '-';
+
+      const result = await storageService.updateCustomer(customer.id, { [dbField]: newValue });
+      if (!result || Number(result.changes) === 0) {
+        await msg.reply('❌ Data tidak berubah. Pastikan nilainya berbeda dari sebelumnya.');
+        return;
+      }
+
+      await msg.reply(
+        `✅ Data customer *${customer.name}* berhasil diubah!\n\n` +
+        `${labelMap[dbField]}: ${oldValue} → ${newValue}`
+      );
+      logger.info(`Customer updated: id=${customer.id} field=${dbField} by ${phone}`);
+    } catch (error) {
+      logger.error('Error editing customer', error);
+      await msg.reply('❌ Gagal mengubah data customer.');
+    }
+  }
+
   async handleCustomerCount(msg) {
     try {
       const phone = extractPhoneNumber(msg.from);

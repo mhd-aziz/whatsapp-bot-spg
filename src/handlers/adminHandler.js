@@ -53,10 +53,14 @@ class AdminHandler {
 
       const formatTime = (record) => {
         if (!record) return '-';
-        return new Date(record.timestamp).toLocaleTimeString('id-ID', {
-          hour: '2-digit',
-          minute: '2-digit',
-        });
+        try {
+          return new Date(record.timestamp).toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+        } catch {
+          return '-';
+        }
       };
 
       let text = `📄 *Rekap Absensi ${dateLabel}*\n\n`;

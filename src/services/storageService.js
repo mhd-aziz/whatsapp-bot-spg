@@ -63,6 +63,10 @@ class StorageService {
     return dataService.updateCustomerPhoto(id, photo);
   }
 
+  updateCustomer(id, updates) {
+    return dataService.updateCustomer(id, updates);
+  }
+
   // ---------- Users ----------
 
   getAllUsers() {

@@ -93,6 +93,9 @@ class CommandHandler {
       case '/detailcust':
         await customerHandler.handleCustomerDetail(msg, sock, args);
         break;
+      case '/editcust':
+        await customerHandler.handleEditCustomer(msg, args);
+        break;
       case '/total':
         await customerHandler.handleCustomerCount(msg);
         break;
@@ -172,6 +175,7 @@ class CommandHandler {
       '/customer - Daftarkan customer baru + foto bukti\n' +
       '/list - Daftar customer\n' +
       '/detailcust <nama> - Detail lengkap customer + foto\n' +
+      '/editcust <nama>#<field>#<nilai> - Edit data customer (nama/hp/kota)\n' +
       '/total - Total customer\n\n' +
       '*Lainnya:*\n' +
       '/help - Bantuan\n' +
